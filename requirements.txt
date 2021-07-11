@@ -1,0 +1,13 @@
+cartopy
+cmocean
+dateutils
+Flask
+Flask-APScheduler
+Flask-WTF
+gunicorn
+matplotlib
+netCDF4
+numpy
+pyopenssl
+pyyaml
+scipy
