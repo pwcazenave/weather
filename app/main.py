@@ -130,13 +130,15 @@ def add_cities(ax, cities, longitude, latitude, temperature):
 
 @app.route('/')
 def slash():
-    today = datetime.now()
-    make_video(today)
+    return flask.redirect(flask.url_for('map'))
 
-    safe_video = video_file.replace('static/', '')
-    video = f'<video width="640" height="480" controls autoplay loop>\n<source type="video/mp4" src="{safe_video}">\nYour browser does not support the video tag.\n</video>'
 
-    return flask.render_template('index.html', video=video)
+@app.route('/weather/')
+@app.route('/weather/<count>')
+def get_weather_frame(count=1):
+    # Return the count'th frame png
+    frame_name = Path('static', 'dynamic', 'frames', f'frame_{int(count):02d}.png')
+    return flask.send_file(frame_name, mimetype='image/png')
 
 
 @app.route('/map')
@@ -220,23 +222,14 @@ def make_video(today, overwrite=False):
 
     # Save the animation frames to disk.
     for i in range(ds.dimensions['Time'].size - skip_offset - 1):
-        animate(i)
-
-
-@app.route('/weather/')
-@app.route('/weather/<count>')
-def get_weather_frame(count=1):
-    # Return the count'th frame png
-    frame_name = Path('static', 'dynamic', 'frames', f'frame_{int(count):02d}.png')
-    return flask.send_file(frame_name, mimetype='image/png')
+        animate(i, overwrite=overwrite)
 
 
 @scheduler.task('cron', id='make_video', day='*', hour=2, minute=30)
 def today_video():
-    # Created overnight video file
+    # Create frames for the most recent model run
     today = datetime.now()
-    if not video_file.exists():
-        make_video(today, overwrite=True)
+    make_video(today, overwrite=True)
 
 
 @app.context_processor
@@ -272,5 +265,7 @@ def main():
 
 if __name__ == '__main__':
 
+    logger.info('Starting scheduler')
     scheduler.start()
+    logger.info('Starting main')
     main()
