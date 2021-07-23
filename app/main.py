@@ -30,6 +30,7 @@ import numpy as np
 from netCDF4 import Dataset, num2date
 from dateutil.relativedelta import relativedelta
 from yaml import safe_load
+from api import api
 
 # Headless matplotlib
 import matplotlib as mpl
@@ -60,6 +61,7 @@ logger.info('Starting app')
 
 app = flask.Flask(__name__, static_url_path='')
 app.config['SECRET_KEY'] = os.urandom(32)
+app.register_blueprint(api, url_prefix='/api/v1')
 
 scheduler = APScheduler()
 scheduler.init_app(app)
