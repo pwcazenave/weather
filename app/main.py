@@ -167,8 +167,21 @@ def get_current_forecast_metadata():
     day = f'{today:%d}'
     run_day = today - relativedelta(days=2)
     meta = {}
-    meta['url'] = f'https://data.ecosystem-modelling.pml.ac.uk/thredds/dodsC/mycoast-all-files/Model/NORTHWESTSHELF_FORECAST_WIND_002/northwestshelf_forecast_wind_002_hourly_all/{year}/{month}/wrfout_d03_{run_day:%Y-%m-%d}_21_00_00.nc'
-    meta['ds'] = Dataset(meta['url'])
+    worked = False
+    max_tries = 30
+    tries = 0
+    while not worked and tries < max_tries:
+        meta['url'] = f'https://data.ecosystem-modelling.pml.ac.uk/thredds/dodsC/mycoast-all-files/Model/NORTHWESTSHELF_FORECAST_WIND_002/northwestshelf_forecast_wind_002_hourly_all/{year}/{month}/wrfout_d03_{run_day:%Y-%m-%d}_21_00_00.nc'
+        try:
+            meta['ds'] = Dataset(meta['url'])
+            logger.debug(f'Found forecast for {run_day:%Y-%m-%d}')
+            worked = True
+        except OSError:
+            logger.debug(f'Failed to find forecast for {run_day:%Y-%m-%d}')
+            # File might not exists on the thredds server, try an older file
+            run_day -= relativedelta(days=1)
+            tries += 1
+
     meta['x'] = meta['ds'].variables['XLONG'][0]
     meta['y'] = meta['ds'].variables['XLAT'][0]
     meta['west'], meta['east'], meta['south'], meta['north'] = get_box(meta['x'], meta['y'])
