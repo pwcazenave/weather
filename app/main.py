@@ -139,7 +139,10 @@ def slash():
 def get_weather_frame(count=1):
     # Return the count'th frame png
     frame_name = Path('static', 'dynamic', 'frames', f'frame_{int(count):02d}.png')
-    return flask.send_file(frame_name, mimetype='image/png')
+    if frame_name.exists():
+        return flask.send_file(frame_name, mimetype='image/png')
+    else:
+        return flask.Response(status=404)
 
 
 @app.route('/map')
