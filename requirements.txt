@@ -1,4 +1,5 @@
-cartopy
+Cython
+numpy
 cmocean
 dateutils
 Flask
@@ -7,7 +8,7 @@ Flask-WTF
 gunicorn
 matplotlib
 netCDF4
-numpy
 pyopenssl
 pyyaml
 scipy
+cartopy
