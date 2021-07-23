@@ -6,11 +6,13 @@
   <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js" type="text/javascript" charset="utf-8"></script>
   <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js" type="text/javascript" charset="utf-8"></script>
   <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js" type="text/javascript" charset="utf-8"></script>
+  <script src="https://cdn.plot.ly/plotly-2.2.0.min.js"></script>
   <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
 </head>
 
 <body style='margin: 0'>
-  <div style="width: 100%; height: 100%" id="mapContainer"></div>
+  <div style="width: 100%; height: 80%" id="mapContainer"></div>
+  <div style="width: 100%; height: 20%" id="timeseries"></div>
 
   <script>
     // Default to PML
@@ -40,6 +42,7 @@
     // Add a default marker - we'll update if we get either of a valid user
     // location (inside the model domain) or a click/tap.
     var marker = new H.map.Marker({ lat: lat, lng: lon });
+    sendPos(lon, lat);
     map.addObject(marker);
 
     var mapEvents = new H.mapevents.MapEvents(map);
@@ -47,12 +50,42 @@
       // Centre the map view on clicks
       var coord = map.screenToGeo(evt.currentPointer.viewportX,
             evt.currentPointer.viewportY);
-      map.setCenter({lng: coord.lng, lat: coord.lat})
+      // map.setCenter({lng: coord.lng, lat: coord.lat})
       marker.setGeometry({lng: coord.lng, lat: coord.lat})
+      // Send the position to the api
+      sendPos(coord.lng, coord.lat);
     });
 
     var behavior = new H.mapevents.Behavior(mapEvents);
     var ui = H.ui.UI.createDefault(map, maptypes);
+
+    function sendPos(lon, lat) {
+      var x = new XMLHttpRequest();
+      x.onreadystatechange = function () {
+        if (x.readyState == 4) {
+          if (x.status == 200 && x.status < 300) {
+            var json = JSON.parse(x.responseText);
+            console.log(json);
+            // Add a new div for the graph
+            var data = [
+              {
+                'x': json['time'],
+                'y': json['temperature_celsius'],
+                'type': 'scatter'
+              }
+            ];
+            var layout = {
+              autosize: true,
+              margin: { l: 30, r: 10, b: 20, t: 10 }
+            };
+            Plotly.newPlot('timeseries', data, layout);
+          }
+        }
+      }
+
+      x.open("GET", "{{ url_for('api.timeseries') }}?lon=" + lon + "&lat=" + lat, true);
+      x.send(null)
+    }
 
     function setupMap(pos) {
       var crd = pos.coords;
@@ -60,6 +93,7 @@
       if ( {{ west }} < crd.longitude < {{ east }} && {{ south }} < crd.latitude < {{ north }}) {
         marker.setGeometry({lng: crd.longitude, lat: crd.latitude});
         map.setCenter({lng: crd.longitude, lat: crd.latitude});
+        sendPos(crd.longitude, crd.latitude);
       }
     }
 
