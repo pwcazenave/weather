@@ -14,13 +14,13 @@ ChangeLog
 
 import os
 import logging
+import multiprocessing
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import flask
 import flask_wtf
 from flask_apscheduler import APScheduler
-
 
 from cmocean import cm
 import cartopy.crs as ccrs
@@ -84,6 +84,7 @@ def get_box(lon, lat):
 
     return west, east, south, north
 
+
 def closest_point(target_x, target_y, longitude, latitude):
     """
     Find the closest WRF grid point (longitude, latitude) to target_x and target_y.
@@ -142,7 +143,7 @@ def get_weather_frame(count=1):
 
 
 @app.route('/map')
-def map():
+def create_map():
     meta = get_current_forecast_metadata()
     kwargs = {'west': meta['west'],
               'east': meta['east'],
@@ -150,8 +151,8 @@ def map():
               'north': meta['north'],
               'api_key': api_key}
     # Make sure we have the frames for today
-    today = datetime.now()
-    make_video(today)
+    make_video(meta, overwrite=False)
+
     return flask.render_template('map.html', **kwargs)
 
 
@@ -172,8 +173,42 @@ def get_current_forecast_metadata():
     return meta
 
 
-def make_video(today, overwrite=False):
-    meta = get_current_forecast_metadata()
+def make_frame(i, x, y, pressure, rain, temperature, time, locations, overwrite=False, skip_offset=0):
+    fig = plt.figure(figsize=(12, 10))
+    projection = ccrs.Mercator()
+    ax = plt.axes(projection=projection)
+
+    # Create an animation
+    rcParams['mathtext.default'] = 'regular'
+
+    # Make a segmented colour map for the rain.
+    rain_cm = plt.get_cmap('Blues', 3)
+
+    # Plots the requested time from the model output
+    fname = Path('static', 'dynamic', 'frames', f'frame_{i + 1:02d}.png')
+    fname.parent.mkdir(parents=True, exist_ok=True)
+    if not fname.exists() or overwrite:
+        logger.debug(f'Creating {fname}')
+        ax.clear()
+        ax.axis('off')
+        ax.contour(x, y, pressure, levels=np.arange(0, 1000, 5), colors=['white'], nchunk=5, transform=ccrs.PlateCarree(), zorder=50)
+        cf = ax.contourf(x, y, rain, transform=ccrs.PlateCarree(), linestyles=None, alpha=0.75, zorder=150, cmap=rain_cm, norm=LogNorm())
+        cf.set_clim(vmax=2)
+        # Convert Kelvin to Celsius here
+        add_cities(ax, locations['cities'], x, y, temperature - 273.15)
+        # ax.coastlines(zorder=200, color='w', linewidth=1)
+        ax.set_extent((x.min(), x.max(), y.min(), y.max()), crs=ccrs.PlateCarree())
+        bbox_props = dict(boxstyle='round, pad=0.3', facecolor='w', edgecolor='w', lw=0, alpha=0.5)
+        ax.axes.text(0.016, 0.975, time.strftime('%Y-%m-%d %H:%M'),
+            ha='left', va='center', color='k', bbox=bbox_props, zorder=300, transform=ax.transAxes)
+        fig.savefig(fname, bbox_inches='tight', pad_inches=0, dpi=96, transparent=True)
+    else:
+        logger.debug(f'{fname} already exists and overwrite is {overwrite}')
+
+    plt.close()
+
+
+def make_video(meta, overwrite=False):
     ds = meta['ds']
 
     rain = np.diff(ds.variables['RAINNC'], axis=0)
@@ -186,50 +221,30 @@ def make_video(today, overwrite=False):
     temperature = ds.variables['T2']
     time = num2date(ds.variables['XTIME'], ds.variables['XTIME'].units)[1:]
 
-    # Create an animation
-    rcParams['mathtext.default'] = 'regular' 
-    fig = plt.figure(figsize=(12, 10))
-    projection = ccrs.Mercator()
-    ax = plt.axes(projection=projection)
-
-    # Make a segmented colour map for the rain.
-    rain_cm = plt.get_cmap('Blues', 3)
-
     with Path('cities.yaml').open('r') as f:
         locations = safe_load(f)
 
     skip_offset = 8  # skip the hindcast days
-    def animate(i, overwrite=False):
-        # Plots the requested time from the model output
-        fname = Path('static', 'dynamic', 'frames', f'frame_{i + 1:02d}.png')
-        if not fname.exists() or overwrite:
-            logger.debug(f'Creating {fname}')
-            ax.clear()
-            ax.axis('off')
-            ax.contour(meta['x'], meta['y'], pressure[skip_offset + i], levels=np.arange(0, 1000, 5), colors=['white'], nchunk=5, transform=ccrs.PlateCarree(), zorder=50)
-            cf = ax.contourf(meta['x'], meta['y'], rain[skip_offset + i], transform=ccrs.PlateCarree(), linestyles=None, alpha=0.75, zorder=150, cmap=rain_cm, norm=LogNorm())
-            cf.set_clim(vmax=2)
-            # Convert Kelvin to Celsius here
-            add_cities(ax, locations['cities'], meta['x'], meta['y'], temperature[skip_offset + i] - 273.15)
-            # ax.coastlines(zorder=200, color='w', linewidth=1)
-            ax.set_extent((meta['west'], meta['east'], meta['south'], meta['north']), crs=ccrs.PlateCarree())
-            bbox_props = dict(boxstyle='round, pad=0.3', facecolor='w', edgecolor='w', lw=0, alpha=0.5)
-            ax.axes.text(0.016, 0.975, time[skip_offset + i].strftime('%Y-%m-%d %H:%M'), 
-                ha='left', va='center', color='k', bbox=bbox_props, zorder=300, transform=ax.transAxes)
-            fig.savefig(fname, bbox_inches='tight', pad_inches=0, dpi=96, transparent=True)
-        else:
-            logger.debug(f'{fname} already exists and overwrite is {overwrite}')
 
     # Save the animation frames to disk.
+    pool = multiprocessing.Pool()
+    args = []
     for i in range(ds.dimensions['Time'].size - skip_offset - 1):
-        animate(i, overwrite=overwrite)
+        si = skip_offset + i
+        args.append((i, meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite))
+        # make_frame(*args[-1])
+    pool.starmap(make_frame, args)
+    pool.close()
+
+    # for i in :
+    #     animate(i, overwrite=overwrite)
 
 
 @scheduler.task('cron', id='make_video', day='*', hour=2, minute=30)
 def today_video():
     # Create frames for the most recent model run
-    today = datetime.now()
-    make_video(today, overwrite=True)
+    meta = get_current_forecast_metadata()
+    make_video(meta, overwrite=True)
 
 
 @app.context_processor
