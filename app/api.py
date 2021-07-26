@@ -4,13 +4,13 @@ import flask
 import numpy as np
 from netCDF4 import num2date
 
+from utils import get_current_forecast_metadata
+
 api = flask.Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
 @api.route('/timeseries')
 def timeseries():
-    from main import get_current_forecast_metadata
-
     # Find the closest location to that which has been passed in
     x = float(flask.request.args.get('lon'))
     y = float(flask.request.args.get('lat'))
