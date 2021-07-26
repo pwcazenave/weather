@@ -65,18 +65,19 @@
         if (x.readyState == 4) {
           if (x.status == 200 && x.status < 300) {
             var json = JSON.parse(x.responseText);
-            console.log(json);
             // Add a new div for the graph
             var data = [
               {
-                'x': json['time'],
+                'x': json['utc_time'],
                 'y': json['temperature_celsius'],
                 'type': 'scatter'
               }
             ];
             var layout = {
               autosize: true,
-              margin: { l: 30, r: 10, b: 20, t: 10 }
+              margin: { l: 50, r: 10, b: 50, t: 10 },
+              xaxis: { title: 'Date' },
+              yaxis: { title: 'Temperature (°C)'}
             };
             Plotly.newPlot('timeseries', data, layout);
           }
