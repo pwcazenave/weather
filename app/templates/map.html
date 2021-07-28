@@ -66,19 +66,57 @@
           if (x.status == 200 && x.status < 300) {
             var json = JSON.parse(x.responseText);
             // Add a new div for the graph
-            var data = [
-              {
-                'x': json['utc_time'],
-                'y': json['temperature_celsius'],
-                'type': 'scatter'
-              }
-            ];
+            var temperature = {
+              'x': json['utc_time'],
+              'y': json['temperature_celsius'],
+              'name': 'Temperature',
+              'type': 'scatter',
+              'marker': { color: '#0D6182' }
+            };
+
+            var temperature_chill = {
+              'x': json['utc_time'],
+              'y': json['temperature_celsius_wind_chill'],
+              'name': 'Wind chill',
+              'type': 'scatter',
+              'marker': { color: '#0D6182' },
+              'line': { dash: 'dot', width: 2 }
+            };
+
+            var wind = {
+              'x': json['utc_time'],
+              'y': json['wind_speed_ms-1'],
+              'name': 'Wind speed',
+              'yaxis': 'y2',
+              'type': 'scatter',
+              'marker': { color: '#00AC31' }
+            };
+
+            var data = [temperature, temperature_chill, wind];
+
+            console.log(data);
+
             var layout = {
               autosize: true,
-              margin: { l: 50, r: 10, b: 50, t: 10 },
-              xaxis: { title: 'Date' },
-              yaxis: { title: 'Temperature (°C)'}
+              margin: { l: 50, r: 100, b: 50, t: 10 },
+              yaxis: {
+                title: 'Temperature (°C)',
+                hoverformat: '.1f',
+                titlefont: { color: '#0D6182' },
+                tickfont: { color: '#0D6182' }
+              },
+              yaxis2: {
+                title: 'Wind speed (m/s)',
+                hoverformat: '.2f',
+                overlaying: 'y',
+                side: 'right',
+                titlefont: { color: '#00AC31' },
+                tickfont: { color: '#00AC31' }
+              },
+              hovermode: 'x',
+              showlegend: false
             };
+
             Plotly.newPlot('timeseries', data, layout);
           }
         }

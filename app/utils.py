@@ -192,3 +192,29 @@ def make_video(meta, overwrite=False):
         # make_frame(*args[-1])
     pool.starmap(make_frame, args)
     pool.close()
+
+
+def wind_chill(temp, wind_speed):
+    """
+    Compute wind chill based on temperature and wind speed.
+
+    Taken from https://en.wikipedia.org/wiki/Wind_chill#North_American_and_United_Kingdom_wind_chill_index.
+
+    """
+
+    # Wind chill is only calculated where temperatures are below 10 Celsius and wind speeds are above 4.8 kph. Mask
+    # off values which fall outside those ranges.
+    mask_temp = temp <= 10
+    mask_wind = (wind_speed * 60 * 60 / 1000) > 4.8
+    mask = np.bitwise_and(mask_temp, mask_wind)
+
+    temp = np.ma.masked_array(temp, mask=~mask)
+    wind_speed = np.ma.masked_array(wind_speed, mask=~mask)
+
+    chill = 13.12 + (0.6217 * temp) - (11.37 * wind_speed**0.16) + (0.3965 * temp * wind_speed**0.16)
+
+    # Replace masked values with the original ones
+    chill[np.argwhere(~mask)] = temp[np.argwhere(~mask)]
+
+    # Return the data values only
+    return chill.data
