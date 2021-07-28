@@ -78,14 +78,15 @@ def get_weather_frame(count=1):
 
 @app.route('/map')
 def create_map():
-    meta = utils.get_current_forecast_metadata()
+    source = 'gfs'
+    meta = utils.get_current_forecast_metadata(source)
     kwargs = {'west': meta['west'],
               'east': meta['east'],
               'south': meta['south'],
               'north': meta['north'],
               'api_key': api_key}
     # Make sure we have the frames for today
-    utils.make_video(meta, overwrite=False)
+    utils.make_video(meta, source=source, overwrite=False, serial=True)
 
     return flask.render_template('map.html', **kwargs)
 

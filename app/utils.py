@@ -76,31 +76,54 @@ def add_cities(ax, cities, longitude, latitude, temperature):
         ax.text(lon, lat, f'{temp:.1f}', ha='center', va='center', color=fc, size=10, bbox=bbox, zorder=250, transform=ccrs.PlateCarree())
 
 
-def get_current_forecast_metadata():
-    # Fetch the latest dataset from PML
-    today = datetime.now()
-    year = f'{today:%Y}'
-    month = f'{today:%m}'
-    day = f'{today:%d}'
-    run_day = today - relativedelta(days=2)
-    meta = {}
-    worked = False
-    max_tries = 30
-    tries = 0
-    while not worked and tries < max_tries:
-        meta['url'] = f'https://data.ecosystem-modelling.pml.ac.uk/thredds/dodsC/mycoast-all-files/Model/NORTHWESTSHELF_FORECAST_WIND_002/northwestshelf_forecast_wind_002_hourly_all/{year}/{month}/wrfout_d03_{run_day:%Y-%m-%d}_21_00_00.nc'
-        try:
-            meta['ds'] = Dataset(meta['url'])
-            logger.debug(f'Found forecast for {run_day:%Y-%m-%d}')
-            worked = True
-        except OSError:
-            logger.debug(f'Failed to find forecast for {run_day:%Y-%m-%d}')
-            # File might not exists on the thredds server, try an older file
-            run_day -= relativedelta(days=1)
-            tries += 1
+def get_current_forecast_metadata(source='pml'):
+    if source == 'pml':
+        # Fetch the latest dataset from PML
+        today = datetime.utcnow()
+        year = f'{today:%Y}'
+        month = f'{today:%m}'
+        day = f'{today:%d}'
+        run_day = today - relativedelta(days=2)
+        meta = {}
+        worked = False
+        max_tries = 30
+        tries = 0
+        while not worked and tries < max_tries:
+            meta['url'] = f'https://data.ecosystem-modelling.pml.ac.uk/thredds/dodsC/mycoast-all-files/Model/NORTHWESTSHELF_FORECAST_WIND_002/northwestshelf_forecast_wind_002_hourly_all/{year}/{month}/wrfout_d03_{run_day:%Y-%m-%d}_21_00_00.nc'
+            try:
+                meta['ds'] = Dataset(meta['url'])
+                logger.debug(f'Found forecast for {run_day:%Y-%m-%d}')
+                worked = True
+            except OSError:
+                logger.debug(f'Failed to find forecast for {run_day:%Y-%m-%d}')
+                # File might not exists on the thredds server, try an older file
+                run_day -= relativedelta(days=1)
+                tries += 1
 
-    meta['x'] = meta['ds'].variables['XLONG'][0]
-    meta['y'] = meta['ds'].variables['XLAT'][0]
+        meta['x'] = meta['ds'].variables['XLONG'][0]
+        meta['y'] = meta['ds'].variables['XLAT'][0]
+
+    elif source == 'gfs':
+        # Fetch the latest forecast from GFS
+        today = datetime.utcnow()
+        ymd = f'{today:%Y%m%d}'
+        forecast_delta = []
+        forecast_runs = list(range(0, today.hour, 6))
+        for i in forecast_runs:
+            forecast_delta.append(today - today.replace(hour=i, minute=0, second=0))
+        recent_hour = forecast_runs[np.argmin(forecast_delta)]
+        hour = f'{recent_hour:02d}'
+
+        meta = {}
+        meta['url'] = f'http://nomads.ncep.noaa.gov:80/dods/gfs_0p25/gfs{ymd}/gfs_0p25_{hour}z'
+        meta['ds'] = Dataset(meta['url'])
+        x = meta['ds'].variables['lon'][:]
+        y = meta['ds'].variables['lat'][:]
+        meta['x'], meta['y'] = np.meshgrid(x, y)
+
+        # u = d.variables['ugrd10m'][0]
+        # v = d.variables['vgrd10m'][0]
+
     meta['west'], meta['east'], meta['south'], meta['north'] = get_box(meta['x'], meta['y'])
 
     return meta
@@ -118,6 +141,7 @@ def make_frame(fname, x, y, pressure, rain, temperature, time, locations, overwr
     rain_cm = plt.get_cmap('Blues', 3)
 
     # Plots the requested time from the model output
+    logger.debug((pressure.min(), pressure.max()))
     if not fname.exists() or overwrite:
         logger.debug(f'Creating {fname}')
         ax.clear()
@@ -138,11 +162,25 @@ def make_frame(fname, x, y, pressure, rain, temperature, time, locations, overwr
     plt.close()
 
 
-def make_video(meta, overwrite=False):
+def make_video(meta, source='pml', overwrite=False, serial=False):
     ds = meta['ds']
 
+    logger.info(f'Fetching weather forecast from {source}')
+
     logger.debug('Fetching time')
-    time = num2date(ds.variables['XTIME'], ds.variables['XTIME'].units)[1:]
+    if source == 'pml':
+        vars = {'time': 'XTIME',
+                'rain': 'RAINNC',
+                'temperature': 'T2',
+                'surface_pressure': 'PSFC',
+                'base_pressure': 'PB'}
+    elif source == 'gfs':
+        vars = {'time': 'time',
+                'rain': 'crainsfc',
+                'temperature': 'tmpsfc',
+                'surface_pressure': 'pressfc'}
+
+    time = num2date(ds.variables[vars['time']], ds.variables[vars['time']].units)[1:]
 
     skip_offset = 8  # skip the hindcast days
 
@@ -150,8 +188,8 @@ def make_video(meta, overwrite=False):
     logger.debug('Check for existing frames on disk')
     fnames = []
     missing_frames = []
-    for i in range(ds.dimensions['Time'].size - skip_offset - 1):
-        fname = Path('static', 'dynamic', 'frames', f'frame_{i + 1:02d}.png')
+    for i in range(ds.dimensions[vars['time']].size - skip_offset - 1):
+        fname = Path('static', 'dynamic', 'frames', f'{source}_frame_{i + 1:02d}.png')
         fname.parent.mkdir(parents=True, exist_ok=True)
         if not fname.exists() or overwrite:
             missing_frames.append(True)
@@ -166,32 +204,41 @@ def make_video(meta, overwrite=False):
         return
 
     logger.debug('Fetching rain')
-    rain = np.diff(ds.variables['RAINNC'], axis=0)
+    rain = np.diff(ds.variables[vars['rain']], axis=0)
     # Remove zero rainfall values
     rain = np.ma.masked_values(rain, 0)
 
     # Convert pressure to millibars.
     logger.debug('Fetching pressure')
-    surface_pressure = ds.variables['PSFC'][1:]
-    base_pressure = ds.variables['PB'][1:, 0]
-    pressure = (surface_pressure - base_pressure) / 100
+    if source == 'pml':
+        # For WRF, we do some jiggery-pokery to get surface pressure.
+        surface_pressure = ds.variables['PSFC'][1:]
+        base_pressure = ds.variables['PB'][1:, 0]
+        pressure = (surface_pressure - base_pressure) / 100
+    else:
+        pressure = ds.variables[vars['surface_pressure']][:] / 100
 
     logger.debug('Fetching temperature')
-    temperature = ds.variables['T2']
+    temperature = ds.variables[vars['temperature']]
 
     with Path('cities.yaml').open('r') as f:
         locations = safe_load(f)
 
     # Save the animation frames to disk.
     logger.debug('Animating frames')
-    pool = multiprocessing.Pool()
-    args = []
-    for i in range(ds.dimensions['Time'].size - skip_offset - 1):
-        si = skip_offset + i
-        args.append((fnames[i], meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite))
-        # make_frame(*args[-1])
-    pool.starmap(make_frame, args)
-    pool.close()
+    if serial:
+        for i in range(ds.dimensions[vars['time']].size - skip_offset - 1):
+            si = skip_offset + i
+            make_frame(fnames[i], meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite)
+    else:
+        pool = multiprocessing.Pool()
+        args = []
+        for i in range(ds.dimensions[vars['time']].size - skip_offset - 1):
+            si = skip_offset + i
+            args.append((fnames[i], meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite))
+            # make_frame(*args[-1])
+        pool.starmap(make_frame, args)
+        pool.close()
 
 
 def wind_chill(temp, wind_speed):
