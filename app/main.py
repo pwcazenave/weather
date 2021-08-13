@@ -104,6 +104,16 @@ def create_map():
     return flask.render_template('map.html', **kwargs)
 
 
+@app.route('/contact')
+def contact():
+    return flask.render_template('base.html')
+
+
+@app.route('/about')
+def about():
+    return flask.render_template('base.html')
+
+
 @scheduler.task('cron', id='make_video', day='*', hour=2, minute=30)
 def today_video():
     # Create frames for the most recent model runs

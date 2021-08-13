@@ -4,7 +4,17 @@
     <meta charset="utf-8" />
     {% block head %}
     {% endblock %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   </head>
+
+  <div>
+    <ul>
+      <li><a class="active" href="{{ url_for('create_map', map_type='atmosphere') }}">Atmosphere</a></li>
+      <li><a href="{{ url_for('create_map', map_type='ocean') }}">Ocean</a></li>
+      <li><a href="{{ url_for('contact') }}">Contact</a></li>
+      <li><a href="{{ url_for('about') }}">About</a></li>
+    </ul>
+  </div>
 
   {% block content %}
   {% endblock %}
