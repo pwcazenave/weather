@@ -163,8 +163,6 @@ def make_frame(fname, x, y, pressure, rain, temperature, time, locations, overwr
 
 
 def make_video(meta, source='pml', overwrite=False, serial=False):
-    ds = meta['ds']
-
     logger.info(f'Fetching weather forecast from {source}')
 
     logger.debug('Fetching time')
@@ -174,21 +172,25 @@ def make_video(meta, source='pml', overwrite=False, serial=False):
                 'temperature': 'T2',
                 'surface_pressure': 'PSFC',
                 'base_pressure': 'PB'}
+        dims = {'time': 'Time'}
     elif source == 'gfs':
         vars = {'time': 'time',
                 'rain': 'crainsfc',
                 'temperature': 'tmpsfc',
                 'surface_pressure': 'pressfc'}
+        dims = {'time': 'time'}
+
+    ds = meta['ds']
 
     time = num2date(ds.variables[vars['time']], ds.variables[vars['time']].units)[1:]
 
-    skip_offset = 8  # skip the hindcast days
+    skip_offset = 0  # skip the hindcast days
 
     # We can now check whether files exist and if we're overwriting
     logger.debug('Check for existing frames on disk')
     fnames = []
     missing_frames = []
-    for i in range(ds.dimensions[vars['time']].size - skip_offset - 1):
+    for i in range(ds.dimensions[dims['time']].size - skip_offset - 1):
         fname = Path('static', 'dynamic', 'frames', f'{source}_frame_{i + 1:02d}.png')
         fname.parent.mkdir(parents=True, exist_ok=True)
         if not fname.exists() or overwrite:
@@ -199,7 +201,9 @@ def make_video(meta, source='pml', overwrite=False, serial=False):
 
     # If we don't have any missing frames and we're not overwriting, we can just skip all the expensive network stuff
     # and use what we have on disk.
-    if not any(missing_frames) and not overwrite:
+    if missing_frames:
+        logger.info(f'Creating {len(missing_frames)} new frames')
+    else:
         logger.info('No missing frames and we are not overwriting; skip out early')
         return
 
@@ -227,13 +231,13 @@ def make_video(meta, source='pml', overwrite=False, serial=False):
     # Save the animation frames to disk.
     logger.debug('Animating frames')
     if serial:
-        for i in range(ds.dimensions[vars['time']].size - skip_offset - 1):
+        for i in range(ds.dimensions[dims['time']].size - skip_offset - 1):
             si = skip_offset + i
             make_frame(fnames[i], meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite)
     else:
         pool = multiprocessing.Pool()
         args = []
-        for i in range(ds.dimensions[vars['time']].size - skip_offset - 1):
+        for i in range(ds.dimensions[dims['time']].size - skip_offset - 1):
             si = skip_offset + i
             args.append((fnames[i], meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite))
             # make_frame(*args[-1])
@@ -252,13 +256,13 @@ def wind_chill(temp, wind_speed):
     # Wind chill is only calculated where temperatures are below 10 Celsius and wind speeds are above 4.8 kph. Mask
     # off values which fall outside those ranges.
     mask_temp = temp <= 10
-    mask_wind = (wind_speed * 60 * 60 / 1000) > 4.8
+    mask_wind = (wind_speed * 60 * 60 / 1000) > 1 + (1/3)
     mask = np.bitwise_and(mask_temp, mask_wind)
 
     temp = np.ma.masked_array(temp, mask=~mask)
-    wind_speed = np.ma.masked_array(wind_speed, mask=~mask)
+    wind_speed = np.ma.masked_array(wind_speed, mask=~mask) * 60 * 60 / 1000
 
-    chill = 13.12 + (0.6217 * temp) - (11.37 * wind_speed**0.16) + (0.3965 * temp * wind_speed**0.16)
+    chill = 13.12 + (0.6215 * temp) - (11.37 * wind_speed**0.16) + (0.3965 * temp * wind_speed**0.16)
 
     # Replace masked values with the original ones
     chill[np.argwhere(~mask)] = temp[np.argwhere(~mask)]
