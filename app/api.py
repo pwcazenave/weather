@@ -22,7 +22,7 @@ def timeseries():
 
     # Checking for values inside the bounding box is a bit tricky as it's possible to click under the arched bottom
     # of the map, for example, and satisfy the criteria below and yet still not have any valid data.
-    if meta['west'] < x < meta['east'].max() or meta['south'].min() < y < meta['north'].max():
+    if meta['west'].min() < x < meta['east'].max() and meta['south'].min() < y < meta['north'].max():
         logger.debug(f"{x}/{y} inside the model domain ({meta['west'].min()}/{meta['east']}/{meta['south']}/{meta['north']})")
         ds = meta['ds']
         pos_row, pos_col = np.unravel_index(np.argmin(np.hypot(meta['x'] - x, meta['y'] - y)), meta['x'].shape)
