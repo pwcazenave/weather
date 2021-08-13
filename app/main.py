@@ -65,11 +65,10 @@ def slash():
     return flask.redirect(flask.url_for('map'))
 
 
-@app.route('/weather/')
-@app.route('/weather/<count>')
-def get_weather_frame(count=1, source='pml'):
-    # Return the count'th frame png
-    frame_name = Path('static', 'dynamic', 'frames', f'{source}_frame_{int(count):02d}.png')
+@app.route('/weather/<source>/<map_type>/<count>')
+def get_weather_frame(source, map_type, count):
+    # Return the count'th frame png for the given source/map_type
+    frame_name = Path('static', 'dynamic', 'frames', f'{source}_{map_type}_frame_{int(count):02d}.png')
     if frame_name.exists():
         return flask.send_file(frame_name, mimetype='image/png')
     else:
@@ -78,24 +77,38 @@ def get_weather_frame(count=1, source='pml'):
 
 @app.route('/map')
 def create_map():
+    map_type = flask.request.args['map_type']
+    if map_type is None:
+        map_type = 'atmosphere'
     source = 'pml'
-    meta = utils.get_current_forecast_metadata(source)
+    if source == 'pml':
+        if map_type == 'ocean':
+            num_frames = 8  # 73
+        elif map_type == 'atmosphere':
+            num_frames = 8
+    elif source == 'gfs':
+        num_frames = 10  # ?
+
+    meta = utils.get_current_forecast_metadata(source, map_type)
     kwargs = {'west': meta['west'],
               'east': meta['east'],
               'south': meta['south'],
               'north': meta['north'],
               'api_key': api_key,
-              'num_frames': 8}
+              'num_frames': num_frames,
+              'map_type': map_type,
+              'source': source}
     # Make sure we have the frames for today
-    utils.make_video(meta, source=source, overwrite=False, serial=False)
+    utils.make_video(meta, source=source, map_type=map_type, overwrite=False, serial=False)
 
     return flask.render_template('map.html', **kwargs)
 
 
 @scheduler.task('cron', id='make_video', day='*', hour=2, minute=30)
 def today_video():
-    # Create frames for the most recent model run
-    meta = utils.get_current_forecast_metadata()
+    # Create frames for the most recent model runs
+    meta = utils.get_current_forecast_metadata(source='pml', map_type='ocean')
+    meta = utils.get_current_forecast_metadata(source='pml', map_type='atmosphere')
     utils.make_video(meta, overwrite=True)
 
 

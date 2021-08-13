@@ -10,13 +10,38 @@ api = flask.Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
 
-@api.route('/timeseries')
-def timeseries():
-    # Find the closest location to that which has been passed in
-    x = float(flask.request.args.get('lon'))
-    y = float(flask.request.args.get('lat'))
+@api.route('/timeseries/<source>/<map_type>')
+def timeseries(source, map_type):
+    if source == 'pml':
+        if map_type == 'atmosphere':
+            ncvars = {'time': 'XTIME',
+                      'rain': 'RAINNC',
+                      'temperature': 'T2',
+                      'surface_pressure': 'PSFC',
+                      'base_pressure': 'PB',
+                      'u': 'U10',
+                      'v': 'V10'}
+            dims = {'time': 'Time'}
+        elif map_type == 'ocean':
+            ncvars = {'time': 'time',
+                      'u': 'u',
+                      'v': 'v',
+                      'temperature': 'temp',
+                      'salinity': 'salinity'}
+            dims = {'time': 'time'}
+    elif source == 'gfs':
+        if map_type == 'atmosphere':
+            ncvars = {'time': 'time',
+                      'rain': 'crainsfc',
+                      'temperature': 'tmpsfc',
+                      'surface_pressure': 'pressfc'}
+            dims = {'time': 'time'}
 
-    meta = get_current_forecast_metadata()
+    # Find the closest location to that which has been passed in
+    x = float(flask.request.args['lon'])
+    y = float(flask.request.args['lat'])
+
+    meta = get_current_forecast_metadata(source, map_type)
 
     values = {'status': 200}
 
@@ -28,35 +53,52 @@ def timeseries():
         pos_row, pos_col = np.unravel_index(np.argmin(np.hypot(meta['x'] - x, meta['y'] - y)), meta['x'].shape)
 
         logger.debug('Fetching time')
-        time = [i.strftime('%Y-%m-%d %H:%M:%S') for i in num2date(ds['XTIME'], ds.variables['XTIME'].units)]
-        logger.debug('Fetching temperature')
-        temp = ds['T2'][:, pos_row, pos_col] - 273.15  # to Celsius
+        time = [i.strftime('%Y-%m-%d %H:%M:%S') for i in num2date(ds.variables[ncvars['time']], ds.variables[ncvars['time']].units)]
 
-        logger.debug('Fetching pressure')
-        surface_pressure = ds.variables['PSFC'][:, pos_row, pos_col]
-        base_pressure = ds.variables['PB'][:, 0, pos_row, pos_col]
-        pressure = (surface_pressure - base_pressure) / 100
+        if map_type == 'atmosphere':
+            logger.debug('Fetching temperature')
+            temp = ds.variables[ncvars['temperature']][:, pos_row, pos_col] - 273.15  # to Celsius
+            logger.debug('Fetching pressure')
+            if source == 'pml':
+                surface_pressure = ds.variables[ncvars['surface_pressure']][:, pos_row, pos_col]
+                base_pressure = ds.variables[ncvars['base_pressure']][:, 0, pos_row, pos_col]
+                pressure = (surface_pressure - base_pressure) / 100
+            elif source == 'gfs':
+                pressure = ds.variables[ncvars['surface_pressure']][:, pos_row, pos_col] / 100
 
-        logger.debug('Fetching wind components')
-        u = ds.variables['U10'][:, pos_row, pos_col]
-        v = ds.variables['V10'][:, pos_row, pos_col]
-        wind_speed = np.hypot(u, v)
-        wind_direction = np.rad2deg(np.arctan2(v, u))
+            logger.debug('Fetching wind components')
+            u = ds.variables[ncvars['u']][:, pos_row, pos_col]
+            v = ds.variables[ncvars['v']][:, pos_row, pos_col]
+            wind_speed = np.hypot(u, v)
+            wind_direction = np.rad2deg(np.arctan2(v, u))
 
-        temp_wind_chill = wind_chill(temp, wind_speed)
-        logger.debug(', '.join(temp.astype(str)))
-        logger.debug(', '.join(wind_speed.astype(str)))
+            temp_wind_chill = wind_chill(temp, wind_speed)
+        elif map_type == 'ocean':
+            logger.debug('Fetching temperature')
+            temp = ds.variables[ncvars['temperature']][:, 0, pos_row, pos_col]
+            logger.debug('Fetching salinity')
+            salinity = ds.variables[ncvars['salinity']][:, 0, pos_row, pos_col]
+            logger.debug('Fetching velocity')
+            u = ds.variables[ncvars['u']][:, 0, pos_row, pos_col]
+            v = ds.variables[ncvars['v']][:, 0, pos_row, pos_col]
 
+        # Common variables
         values.update({'requested_lon': x,
                        'requested_lat': y,
                        'grid_lon': meta['x'][pos_row, pos_col].astype(float),
                        'grid_lat': meta['y'][pos_row, pos_col].astype(float),
                        'utc_time': time,
-                       'temperature_celsius': temp.tolist(),
-                       'temperature_celsius_wind_chill': temp_wind_chill.tolist(),
-                       'surface_pressure_mb': pressure.tolist(),
-                       'wind_speed_ms-1': wind_speed.tolist(),
-                       'wind_direction_degN': wind_direction.tolist()})
+                       'temperature_celsius': temp.tolist()})
+
+        if map_type == 'atmosphere':
+            values.update({'temperature_celsius_wind_chill': temp_wind_chill.tolist(),
+                           'surface_pressure_mb': pressure.tolist(),
+                           'wind_speed_ms-1': wind_speed.tolist(),
+                           'wind_direction_degN': wind_direction.tolist()})
+        elif map_type == 'ocean':
+            values.update({'salinity_psu': salinity.tolist(),
+                           'u_m_per_s': u.tolist(),
+                           'v_m_per_s': v.tolist()})
     else:
         logger.debug(f"{x}/{y} outside the model domain ({meta['west'].min()}/{meta['east']}/{meta['south']}/{meta['north']})")
         values['status'] = 500
