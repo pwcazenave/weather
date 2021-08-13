@@ -1,174 +1,173 @@
-<html>
+{% extends('base.html') %}
 
-<head>
-  <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-  <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js" type="text/javascript" charset="utf-8"></script>
-  <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js" type="text/javascript" charset="utf-8"></script>
-  <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js" type="text/javascript" charset="utf-8"></script>
-  <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js" type="text/javascript" charset="utf-8"></script>
-  <script src="https://cdn.plot.ly/plotly-2.2.0.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
-</head>
+{% block head %}
+    <title>Weather map</title>
+    <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://cdn.plot.ly/plotly-2.2.0.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
+{% endblock %}
 
-<body style='margin: 0'>
-  <div style="width: 100%; height: 80%" id="mapContainer"></div>
-  <div style="width: 100%; height: 20%" id="timeseries"></div>
+{% block content %}
+  <body style='margin: 0'>
+    <div style="width: 100%; height: 80%" id="mapContainer"></div>
+    <div style="width: 100%; height: 20%" id="timeseries"></div>
 
-  <script>
-    // Default to PML
-    var lon = -4.147850827985379;
-    var lat = 50.36607618658233;
-    var x = document.getElementById("map");
+    <script>
+      // Default to PML
+      var lon = -4.147850827985379;
+      var lat = 50.36607618658233;
+      var x = document.getElementById("map");
 
-    // Initialize the platform object:
-    var platform = new H.service.Platform({
-      'apikey': '{{ api_key }}'
-    });
+      // Initialize the platform object:
+      var platform = new H.service.Platform({
+        'apikey': '{{ api_key }}'
+      });
 
-    // Obtain the default map types from the platform object
-    var maptypes = platform.createDefaultLayers();
+      // Obtain the default map types from the platform object
+      var maptypes = platform.createDefaultLayers();
 
-    // Initialize a map:
-    var map = new H.Map(
-      document.getElementById('mapContainer'),
-      maptypes.raster.terrain.map,
-      {
-        zoom: 6,
-        center: { lat: lat, lng: lon }
-      }
-    );
-    window.addEventListener('resize', () => map.getViewPort().resize());
+      // Initialize a map:
+      var map = new H.Map(
+        document.getElementById('mapContainer'),
+        maptypes.raster.terrain.map,
+        {
+          zoom: 6,
+          center: { lat: lat, lng: lon }
+        }
+      );
+      window.addEventListener('resize', () => map.getViewPort().resize());
 
-    // Add a default marker - we'll update if we get either of a valid user
-    // location (inside the model domain) or a click/tap.
-    var marker = new H.map.Marker({ lat: lat, lng: lon });
-    sendPos(lon, lat);
-    map.addObject(marker);
+      // Add a default marker - we'll update if we get either of a valid user
+      // location (inside the model domain) or a click/tap.
+      var marker = new H.map.Marker({ lat: lat, lng: lon });
+      sendPos(lon, lat);
+      map.addObject(marker);
 
-    var mapEvents = new H.mapevents.MapEvents(map);
-    map.addEventListener('tap', function (evt) {
-      // Centre the map view on clicks
-      var coord = map.screenToGeo(evt.currentPointer.viewportX,
-            evt.currentPointer.viewportY);
-      // map.setCenter({lng: coord.lng, lat: coord.lat})
-      marker.setGeometry({lng: coord.lng, lat: coord.lat})
-      // Send the position to the api
-      sendPos(coord.lng, coord.lat);
-    });
+      var mapEvents = new H.mapevents.MapEvents(map);
+      map.addEventListener('tap', function (evt) {
+        // Centre the map view on clicks
+        var coord = map.screenToGeo(evt.currentPointer.viewportX,
+              evt.currentPointer.viewportY);
+        // map.setCenter({lng: coord.lng, lat: coord.lat})
+        marker.setGeometry({lng: coord.lng, lat: coord.lat})
+        // Send the position to the api
+        sendPos(coord.lng, coord.lat);
+      });
 
-    var behavior = new H.mapevents.Behavior(mapEvents);
-    var ui = H.ui.UI.createDefault(map, maptypes);
+      var behavior = new H.mapevents.Behavior(mapEvents);
+      var ui = H.ui.UI.createDefault(map, maptypes);
 
-    function sendPos(lon, lat) {
-      var x = new XMLHttpRequest();
-      x.onreadystatechange = function () {
-        if (x.readyState == 4) {
-          if (x.status == 200 && x.status < 300) {
-            var json = JSON.parse(x.responseText);
-            // Add a new div for the graph
-            var temperature = {
-              'x': json['utc_time'],
-              'y': json['temperature_celsius'],
-              'name': 'Temperature',
-              'type': 'scatter',
-              'marker': { color: '#0D6182' }
-            };
+      function sendPos(lon, lat) {
+        var x = new XMLHttpRequest();
+        x.onreadystatechange = function () {
+          if (x.readyState == 4) {
+            if (x.status == 200 && x.status < 300) {
+              var json = JSON.parse(x.responseText);
+              // Add a new div for the graph
+              var temperature = {
+                'x': json['utc_time'],
+                'y': json['temperature_celsius'],
+                'name': 'Temperature',
+                'type': 'scatter',
+                'marker': { color: '#0D6182' }
+              };
 
-            var temperature_chill = {
-              'x': json['utc_time'],
-              'y': json['temperature_celsius_wind_chill'],
-              'name': 'Wind chill index',
-              'type': 'scatter',
-              'marker': { color: '#0D6182' },
-              'line': { dash: 'dot', width: 2 }
-            };
+              var temperature_chill = {
+                'x': json['utc_time'],
+                'y': json['temperature_celsius_wind_chill'],
+                'name': 'Wind chill index',
+                'type': 'scatter',
+                'marker': { color: '#0D6182' },
+                'line': { dash: 'dot', width: 2 }
+              };
 
-            var wind = {
-              'x': json['utc_time'],
-              'y': json['wind_speed_ms-1'],
-              'name': 'Wind speed',
-              'yaxis': 'y2',
-              'type': 'scatter',
-              'marker': { color: '#00AC31' }
-            };
+              var wind = {
+                'x': json['utc_time'],
+                'y': json['wind_speed_ms-1'],
+                'name': 'Wind speed',
+                'yaxis': 'y2',
+                'type': 'scatter',
+                'marker': { color: '#00AC31' }
+              };
 
-            var data = [temperature, temperature_chill, wind];
+              var data = [temperature, temperature_chill, wind];
 
-            console.log(data);
+              var layout = {
+                autosize: true,
+                margin: { l: 50, r: 100, b: 50, t: 10 },
+                yaxis: {
+                  title: 'Temperature (°C)',
+                  hoverformat: '.1f',
+                  titlefont: { color: '#0D6182' },
+                  tickfont: { color: '#0D6182' }
+                },
+                yaxis2: {
+                  title: 'Wind speed (m/s)',
+                  hoverformat: '.2f',
+                  overlaying: 'y',
+                  side: 'right',
+                  titlefont: { color: '#00AC31' },
+                  tickfont: { color: '#00AC31' }
+                },
+                hovermode: 'x',
+                showlegend: false
+              };
 
-            var layout = {
-              autosize: true,
-              margin: { l: 50, r: 100, b: 50, t: 10 },
-              yaxis: {
-                title: 'Temperature (°C)',
-                hoverformat: '.1f',
-                titlefont: { color: '#0D6182' },
-                tickfont: { color: '#0D6182' }
-              },
-              yaxis2: {
-                title: 'Wind speed (m/s)',
-                hoverformat: '.2f',
-                overlaying: 'y',
-                side: 'right',
-                titlefont: { color: '#00AC31' },
-                tickfont: { color: '#00AC31' }
-              },
-              hovermode: 'x',
-              showlegend: false
-            };
-
-            Plotly.newPlot('timeseries', data, layout);
+              Plotly.newPlot('timeseries', data, layout);
+            }
           }
+        }
+
+        x.open("GET", "{{ url_for('api.timeseries') }}?lon=" + lon + "&lat=" + lat, true);
+        x.send(null)
+      }
+
+      function setupMap(pos) {
+        var crd = pos.coords;
+        // Only recentre the map if we're within the model bounds
+        if ( {{ west }} < crd.longitude < {{ east }} && {{ south }} < crd.latitude < {{ north }}) {
+          marker.setGeometry({lng: crd.longitude, lat: crd.latitude});
+          map.setCenter({lng: crd.longitude, lat: crd.latitude});
+          sendPos(crd.longitude, crd.latitude);
         }
       }
 
-      x.open("GET", "{{ url_for('api.timeseries') }}?lon=" + lon + "&lat=" + lat, true);
-      x.send(null)
-    }
-
-    function setupMap(pos) {
-      var crd = pos.coords;
-      // Only recentre the map if we're within the model bounds
-      if ( {{ west }} < crd.longitude < {{ east }} && {{ south }} < crd.latitude < {{ north }}) {
-        marker.setGeometry({lng: crd.longitude, lat: crd.latitude});
-        map.setCenter({lng: crd.longitude, lat: crd.latitude});
-        sendPos(crd.longitude, crd.latitude);
+      function animateFrames(frames) {
+        var counter = 0;
+        var overlay = new H.map.Overlay(
+          new H.geo.Rect(
+            {{ north }}, {{ west}},
+            {{ south }}, {{ east }}
+          ),
+          frames[0],
+          { volatility: true }  // the bitmap is frequently updated so mark as volatile
+        );
+        // add overlay to the map
+        map.addObject(overlay);
+        // animate all the other frames
+        setInterval(function() {
+          counter = counter <= frames.length ? ++counter : 0;
+          overlay.setBitmap(weatherFrames[counter]);
+        }, 250);
       }
-    }
+      // Get the frames into an array of URLs
+      var weatherFrames = [];
+      for (i = 1; i <= {{ num_frames }}; i++) {
+        weatherFrames.push("{{ url_for('get_weather_frame') }}" + i);
+      }
 
-    function animateFrames(frames) {
-      var counter = 0;
-      var overlay = new H.map.Overlay(
-        new H.geo.Rect(
-          {{ north }}, {{ west}},
-          {{ south }}, {{ east }}
-        ),
-        frames[0],
-        { volatility: true }  // the bitmap is frequently updated so mark as volatile
-      );
-      // add overlay to the map
-      map.addObject(overlay);    
-      // animate all the other frames
-      setInterval(function() {
-        counter = counter <= frames.length ? ++counter : 0;
-        overlay.setBitmap(weatherFrames[counter]);
-      }, 250);
-    }
-    // Get the frames into an array of URLs
-    var weatherFrames = [];
-    for (i = 1; i <= {{ num_frames }}; i++) {
-      weatherFrames.push("{{ url_for('get_weather_frame') }}" + i);
-    }
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(setupMap);
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(setupMap);
-    } else {
-      alert("Geolocation is not supported by this browser.");
-    }
+      animateFrames(weatherFrames);
 
-    animateFrames(weatherFrames);
-
-  </script>
-</body>
-
-</html>
+    </script>
+  </body>
+{% endblock %}
