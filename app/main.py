@@ -67,9 +67,9 @@ def slash():
 
 @app.route('/weather/')
 @app.route('/weather/<count>')
-def get_weather_frame(count=1):
+def get_weather_frame(count=1, source='pml'):
     # Return the count'th frame png
-    frame_name = Path('static', 'dynamic', 'frames', f'frame_{int(count):02d}.png')
+    frame_name = Path('static', 'dynamic', 'frames', f'{source}_frame_{int(count):02d}.png')
     if frame_name.exists():
         return flask.send_file(frame_name, mimetype='image/png')
     else:
@@ -78,15 +78,16 @@ def get_weather_frame(count=1):
 
 @app.route('/map')
 def create_map():
-    source = 'gfs'
+    source = 'pml'
     meta = utils.get_current_forecast_metadata(source)
     kwargs = {'west': meta['west'],
               'east': meta['east'],
               'south': meta['south'],
               'north': meta['north'],
-              'api_key': api_key}
+              'api_key': api_key,
+              'num_frames': 8}
     # Make sure we have the frames for today
-    utils.make_video(meta, source=source, overwrite=False, serial=True)
+    utils.make_video(meta, source=source, overwrite=False, serial=False)
 
     return flask.render_template('map.html', **kwargs)
 
