@@ -106,12 +106,12 @@ def create_map():
 
 @app.route('/contact')
 def contact():
-    return flask.render_template('base.html')
+    return flask.render_template('contact.html')
 
 
 @app.route('/about')
 def about():
-    return flask.render_template('base.html')
+    return flask.render_template('about.html')
 
 
 @scheduler.task('cron', id='make_video', day='*', hour=2, minute=30)
@@ -147,9 +147,7 @@ def main():
             debug=debug,
             use_reloader=use_reloader,
             #ssl_context='adhoc',
-            extra_files=['./app/templates/index.html',
-                         './app/templates/map.html',
-                         './app/templates/favicon.ico',
+            extra_files=['./app/templates/favicon.ico',
                          './app/static/css/style.css'])
 
 
