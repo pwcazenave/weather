@@ -147,7 +147,7 @@ def main():
             debug=debug,
             use_reloader=use_reloader,
             #ssl_context='adhoc',
-            extra_files=['./app/templates/favicon.ico',
+            extra_files=['./app/static/favicon.ico',
                          './app/static/css/style.css'])
 
 
