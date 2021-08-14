@@ -83,7 +83,7 @@ def create_map():
     source = 'pml'
     if source == 'pml':
         if map_type == 'ocean':
-            num_frames = 8  # 73
+            num_frames = 73
         elif map_type == 'atmosphere':
             num_frames = 8
     elif source == 'gfs':
