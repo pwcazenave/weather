@@ -189,7 +189,7 @@
         }
       }
 
-      function animateFrames(frames) {
+      function animateFrames(frames, interval) {
         var counter = 0;
         var overlay = new H.map.Overlay(
           new H.geo.Rect(
@@ -205,7 +205,7 @@
         setInterval(function() {
           counter = counter <= frames.length ? ++counter : 0;
           overlay.setBitmap(weatherFrames[counter]);
-        }, 250);
+        }, interval);
       }
 
       // Get the frames into an array of URLs
@@ -220,7 +220,11 @@
         alert("Geolocation is not supported by this browser.");
       }
 
-      animateFrames(weatherFrames);
+      {% if map_type == 'atmosphere' %}
+      animateFrames(weatherFrames, 250);
+      {% elif map_type == 'ocean' %}
+      animateFrames(weatherFrames, 100);
+      {% endif %}
 
     </script>
 {% endblock %}
