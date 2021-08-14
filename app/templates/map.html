@@ -12,9 +12,10 @@
 {% endblock %}
 
 {% block content %}
-  <body>
-    <div style="width: 100%; height: 80%" id="mapContainer"></div>
-    <div style="width: 100%; height: 20%" id="timeseries"></div>
+    <div class="mapContainer" id="map"></div>
+    <div class="graphContainer" id="timeseries">
+<!--        <span id='close' onclick='this.parentNode.parentNode.removeChild(this.parentNode); return false;' style="position: float">(x)</span>-->
+    </div>
 
     <script>
       // Default to PML for atmosphere, approximately L4 for ocean
@@ -37,7 +38,7 @@
 
       // Initialize a map:
       var map = new H.Map(
-        document.getElementById('mapContainer'),
+        document.getElementById('map'),
         maptypes.raster.terrain.map,
         {
           {% if map_type == 'atmosphere' %}
@@ -206,6 +207,7 @@
           overlay.setBitmap(weatherFrames[counter]);
         }, 250);
       }
+
       // Get the frames into an array of URLs
       var weatherFrames = [];
       for (i = 1; i <= {{ num_frames - 1 }}; i++) {
@@ -221,5 +223,4 @@
       animateFrames(weatherFrames);
 
     </script>
-  </body>
 {% endblock %}
