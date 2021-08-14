@@ -242,7 +242,7 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
         if map_type == 'atmosphere':
             skip_offset = 0  # skip the hindcast days
         elif map_type == 'ocean':
-            skip_offset = 65  # just for debugging
+            skip_offset = 0  # not sure what's hindcast in this
 
     # We can now check whether files exist and if we're overwriting
     logger.debug('Check for existing frames on disk')
