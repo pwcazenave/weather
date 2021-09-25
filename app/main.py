@@ -77,9 +77,10 @@ def get_weather_frame(source, map_type, count):
 
 @app.route('/map')
 def create_map():
-    map_type = flask.request.args['map_type']
-    if map_type is None:
+    if 'map_type' not in flask.request.args:
         map_type = 'atmosphere'
+    else:
+        map_type = flask.request.args['map_type']
     source = 'pml'
     if source == 'pml':
         if map_type == 'ocean':
