@@ -62,7 +62,7 @@ app.jinja_env.lstrip_blocks = True
 
 @app.route('/')
 def slash():
-    return flask.redirect(flask.url_for('map'))
+    return flask.redirect(flask.url_for('create_map'))
 
 
 @app.route('/weather/<source>/<map_type>/<count>')
