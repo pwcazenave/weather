@@ -151,7 +151,7 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
     rcParams['mathtext.default'] = 'regular'
 
     # Make a segmented colour map for the rain.
-    rain_cm = plt.get_cmap('Blues', 3)
+    rain_cm = plt.get_cmap('Blues', 10)
 
     # Plots the requested time from the model output
     too_old = False
@@ -161,7 +161,7 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
         logger.debug(f'Creating {fname}')
         ax.clear()
         ax.axis('off')
-        ax.contour(x, y, pressure, levels=np.arange(0, 1000, 5), colors=['white'], nchunk=5, transform=ccrs.PlateCarree(), zorder=50)
+        ax.contour(x, y, pressure, levels=np.arange(0, 1000, 5), colors=['black'], nchunk=5, transform=ccrs.PlateCarree(), zorder=50)
         cf = ax.contourf(x, y, rain, transform=ccrs.PlateCarree(), linestyles=None, alpha=0.75, zorder=150, cmap=rain_cm, norm=LogNorm())
         cf.set_clim(vmax=2)
         # Convert Kelvin to Celsius here
@@ -240,15 +240,15 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
 
     ds = meta['ds']
 
-    logger.debug('Fetching time')
-    time = num2date(ds.variables[ncvars['time']], ds.variables[ncvars['time']].units)[1:]
-
     skip_offset = 0
     if source == 'pml':
         if map_type == 'atmosphere':
-            skip_offset = 0  # skip the hindcast days
+            skip_offset = 1  # skip the initial condition
         elif map_type == 'ocean':
             skip_offset = 0  # not sure what's hindcast in this
+
+    logger.debug('Fetching time')
+    time = num2date(ds.variables[ncvars['time']], ds.variables[ncvars['time']].units)[skip_offset:]
 
     # We can now check whether files exist and if we're overwriting
     logger.debug('Check for existing frames on disk')
@@ -276,10 +276,24 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
 
     if map_type == 'atmosphere':
         logger.debug('Fetching atmosphere variables')
+
         logger.debug('Fetching rain')
-        rain = np.diff(ds.variables[ncvars['rain']], axis=0)
-        # Remove zero rainfall values
-        rain = np.ma.masked_values(rain, 0)
+        if source == 'pml':
+            # Convert from cumulative rainfall to instantaneous in m/s. Look away efficiency fans. It's 17:51 and I need
+            # to go home, so this'll have to do.
+            logger.info('De-accumulating the rain data')
+            rain = ds.variables[ncvars['rain']]
+            temp = np.zeros(rain[skip_offset:].shape)
+            for gi in range(1, rain.shape[0] - skip_offset):
+                temp[gi] = np.diff(rain[gi - 1:gi + 1, ...], axis=0) / 1000 / (time[-1] - time[-2]).total_seconds()
+            # The initial conditions (GFS). We don't want that here, so skip this for now.
+            # temp[0] = rain[0] / 1000 / (time[-1] - time[-2]).total_seconds()
+            rain = temp * 3600 * 24  # into m/d
+            del temp
+            # Remove tiiiiny rainfall values
+            rain = np.ma.masked_where(rain < 0.001, rain)
+        else:
+            rain = ds.variables[ncvars['rain']]
 
         # Convert pressure to millibars.
         logger.debug('Fetching pressure')
@@ -292,7 +306,10 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
             pressure = ds.variables[ncvars['surface_pressure']][:] / 100
 
         logger.debug('Fetching temperature')
-        temperature = ds.variables[ncvars['temperature']]
+        if source == 'pml':
+            temperature = ds.variables[ncvars['temperature']][1:]
+        else:
+            temperature = ds.variables[ncvars['temperature']]
 
         with Path('cities.yaml').open('r') as f:
             locations = safe_load(f)
