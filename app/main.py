@@ -86,7 +86,7 @@ def create_map():
         if map_type == 'ocean':
             num_frames = 73
         elif map_type == 'atmosphere':
-            num_frames = 8
+            num_frames = 32
     elif source == 'gfs':
         num_frames = 10  # ?
 
