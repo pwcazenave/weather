@@ -65,7 +65,6 @@ def slash():
     return flask.redirect(flask.url_for('create_map', map_type='atmosphere'))
 
 
-
 @app.route('/map/<map_type>')
 def create_map(map_type):
     source = 'pml'
