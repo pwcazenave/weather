@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import flask
 import numpy as np
@@ -110,3 +111,14 @@ def timeseries(source, map_type):
         values['status'] = 500
 
     return flask.jsonify(values)
+
+
+@api.route('/weather/<source>/<map_type>/<count>')
+def get_weather_frame(source, map_type, count):
+    # Return the count'th frame png for the given source/map_type
+    frame_name = Path('static', 'dynamic', 'frames', f'{source}_{map_type}_frame_{int(count):02d}.png')
+    if frame_name.exists():
+        return flask.send_file(frame_name, mimetype='image/png')
+    else:
+        return flask.Response(status=404)
+
