@@ -10,8 +10,7 @@ api = flask.Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
 
-@api.route('/timeseries/<source>/<map_type>')
-def timeseries(source, map_type):
+def get_ncvars(source, map_type):
     if source == 'pml':
         if map_type == 'atmosphere':
             ncvars = {'time': 'XTIME',
@@ -36,6 +35,13 @@ def timeseries(source, map_type):
                       'temperature': 'tmpsfc',
                       'surface_pressure': 'pressfc'}
             dims = {'time': 'time'}
+
+    return ncvars
+
+
+@api.route('/timeseries/<source>/<map_type>')
+def timeseries(source, map_type):
+    ncvars = get_ncvars(source, map_type)
 
     # Find the closest location to that which has been passed in
     x = float(flask.request.args['lon'])
