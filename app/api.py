@@ -113,6 +113,23 @@ def timeseries(source, map_type):
     return flask.jsonify(values)
 
 
+@api.route('/dates/<source>/<map_type>')
+def get_weather_dates(source, map_type):
+    # Return the count'th date source/map_type
+    ncvars = get_ncvars(source, map_type)
+    meta = get_current_forecast_metadata(source, map_type)
+    ds = meta['ds']
+    logger.debug('Fetching time')
+    time = [i.strftime('%Y-%m-%d %H:%M:%S') for i in num2date(ds.variables[ncvars['time']], ds.variables[ncvars['time']].units)]
+
+    skip = 0
+    if source == 'pml' and map_type == 'atmosphere':
+        # Skip the first two time values - we start the WRF animation at midnight the first day
+        skip = 2
+
+    return flask.jsonify({'times': time[skip:]})
+
+
 @api.route('/weather/<source>/<map_type>/<count>')
 def get_weather_frame(source, map_type, count):
     # Return the count'th frame png for the given source/map_type
