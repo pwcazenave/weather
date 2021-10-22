@@ -13,6 +13,11 @@
 
 {% block content %}
     <div class="mapContainer" id="map"></div>
+    <div class="slideContainer">
+        <input type="range" min="0" max="{{ num_frames - 2 }}" value="0" class="slider" id="slider">
+        <span id="dateSpan"></span>
+    </div>
+
     <div class="graphContainer" id="timeseries">
 <!--        <span id='close' onclick='this.parentNode.parentNode.removeChild(this.parentNode); return false;' style="position: float">(x)</span>-->
     </div>
@@ -22,10 +27,13 @@
       {% if map_type == 'atmosphere' %}
       var lon = -4.147850827985379;
       var lat = 50.36607618658233;
+      const interval = 250;
       {% elif map_type == 'ocean' %}
       var lon = -4.178129479786857;
       var lat = 50.2642872451734;
+      const interval = 100;
       {% endif %}
+      var isPaused = false;
       var x = document.getElementById("map");
 
       // Initialize the platform object:
@@ -70,6 +78,35 @@
 
       var behavior = new H.mapevents.Behavior(mapEvents);
       var ui = H.ui.UI.createDefault(map, maptypes);
+
+      // Get the frames into an array of URLs
+      var weatherFrames = [];
+      for (i = 0; i < {{ num_frames - 1 }}; i++) {
+        count = i + 1;
+        weatherFrames.push("{{ url_for('api.get_weather_frame', map_type=map_type, source=source, count='') }}" + count);
+      }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(setupMap);
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+
+      function getPromise(URL) {
+        let promise = new Promise(function (resolve, reject) {
+          let req = new XMLHttpRequest();
+          req.open("GET", URL);
+          req.onload = function () {
+            if (req.status == 200) {
+              resolve(req.response);
+            } else {
+              reject("There is an Error!");
+            }
+          };
+          req.send();
+        });
+        return promise;
+      }
 
       function sendPos(lon, lat) {
         var x = new XMLHttpRequest();
@@ -201,30 +238,45 @@
         );
         // add overlay to the map
         map.addObject(overlay);
-        // animate all the other frames
-        setInterval(function() {
-          counter = counter <= frames.length ? ++counter : 0;
-          overlay.setBitmap(weatherFrames[counter]);
-        }, interval);
+
+        // Fetch the current dates from the API and animate the frames
+        let datePromise = getPromise("{{ url_for('api.get_weather_dates', source=source, map_type=map_type) }}");
+        var dates = [];
+        datePromise
+          .then(result => {
+            let dates = JSON.parse(result);
+            var slider = document.getElementById("slider");
+            var output = document.getElementById("dateSpan");
+            output.innerHTML = dates['times'][0];
+
+            // Animate all the other frames
+            intervalID = setInterval(function() {
+              if (!isPaused) {
+                counter = counter < frames.length ? ++counter : 1;
+                overlay.setBitmap(weatherFrames[counter - 1]);
+                // Update the date
+                output.innerHTML = dates['times'][counter - 1];
+                slider.value = counter - 1;
+              }
+            }, interval);
+
+            // Update the current slider value (each time you drag the slider handle)
+            slider.oninput = function() {
+              // Stop the animation at this point
+              isPaused = true;
+              overlay.setBitmap(weatherFrames[this.value]);
+              output.innerHTML = dates['times'][this.value];
+            }
+
+            slider.onmouseup = function() {
+              isPaused = false;
+              counter = slider.value;
+            }
+          })
+          .catch(error => console.log(error));
       }
 
-      // Get the frames into an array of URLs
-      var weatherFrames = [];
-      for (i = 1; i <= {{ num_frames - 1 }}; i++) {
-        weatherFrames.push("{{ url_for('get_weather_frame', map_type=map_type, source=source, count='') }}" + i);
-      }
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(setupMap);
-      } else {
-        alert("Geolocation is not supported by this browser.");
-      }
-
-      {% if map_type == 'atmosphere' %}
-      animateFrames(weatherFrames, 250);
-      {% elif map_type == 'ocean' %}
-      animateFrames(weatherFrames, 100);
-      {% endif %}
+      animateFrames(weatherFrames, interval);
 
     </script>
 {% endblock %}
