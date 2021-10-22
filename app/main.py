@@ -66,13 +66,8 @@ def slash():
 
 
 
-
-@app.route('/map')
-def create_map():
-    if 'map_type' not in flask.request.args:
-        map_type = 'atmosphere'
-    else:
-        map_type = flask.request.args['map_type']
+@app.route('/map/<map_type>')
+def create_map(map_type):
     source = 'pml'
     if source == 'pml':
         if map_type == 'ocean':
