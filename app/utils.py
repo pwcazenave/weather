@@ -168,8 +168,8 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
         add_cities(ax, locations['cities'], x, y, temperature - 273.15)
         # ax.coastlines(zorder=200, color='w', linewidth=1)
         ax.set_extent((x.min(), x.max(), y.min(), y.max()), crs=ccrs.PlateCarree())
-        bbox_props = dict(boxstyle='round, pad=0.3', facecolor='w', edgecolor='w', lw=0, alpha=0.5)
-        ax.axes.text(0.016, 0.975, time.strftime('%Y-%m-%d %H:%M'), ha='left', va='center', color='k', bbox=bbox_props, zorder=300, transform=ax.transAxes)
+        # bbox_props = dict(boxstyle='round, pad=0.3', facecolor='w', edgecolor='w', lw=0, alpha=0.5)
+        # ax.axes.text(0.016, 0.975, time.strftime('%Y-%m-%d %H:%M'), ha='left', va='center', color='k', bbox=bbox_props, zorder=300, transform=ax.transAxes)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0, dpi=96, transparent=True)
     else:
         logger.debug(f'{fname} already exists and overwrite is {overwrite}')
