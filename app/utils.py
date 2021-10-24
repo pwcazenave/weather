@@ -147,6 +147,11 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
     projection = ccrs.Mercator()
     ax = plt.axes(projection=projection)
 
+    # Cartopy transparency
+    ax.outline_patch.set_visible(False)
+    ax.background_patch.set_visible(False)
+    ax.background_patch.set_alpha(0)
+
     # Create an animation
     rcParams['mathtext.default'] = 'regular'
 
@@ -181,6 +186,11 @@ def make_ocean_frame(fname, x, y, temperature, salinity, u, v, time, overwrite=F
     fig = plt.figure(figsize=(12, 10))
     projection = ccrs.Mercator()
     ax = plt.axes(projection=projection)
+
+    # Cartopy transparency
+    ax.outline_patch.set_visible(False)
+    ax.background_patch.set_visible(False)
+    ax.background_patch.set_alpha(0)
 
     # Create an animation
     rcParams['mathtext.default'] = 'regular'
