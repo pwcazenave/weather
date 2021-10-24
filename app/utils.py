@@ -248,7 +248,7 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
             skip_offset = 0  # not sure what's hindcast in this
 
     logger.debug('Fetching time')
-    time = num2date(ds.variables[ncvars['time']], ds.variables[ncvars['time']].units)[skip_offset:]
+    time = num2date(ds.variables[ncvars['time']][:], ds.variables[ncvars['time']].units)[skip_offset:]
 
     # We can now check whether files exist and if we're overwriting
     logger.debug('Check for existing frames on disk')
