@@ -49,6 +49,7 @@ app.register_blueprint(api, url_prefix='/api/v1')
 
 scheduler = APScheduler()
 scheduler.init_app(app)
+scheduler.start()
 
 # Configure CSRF protection.
 csrf = flask_wtf.csrf.CSRFProtect(app)
@@ -141,6 +142,5 @@ def main():
 if __name__ == '__main__':
 
     logger.info('Starting scheduler')
-    scheduler.start()
     logger.info('Starting main')
     main()
