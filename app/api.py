@@ -60,7 +60,7 @@ def timeseries(source, map_type):
         pos_row, pos_col = np.unravel_index(np.argmin(np.hypot(meta['x'] - x, meta['y'] - y)), meta['x'].shape)
 
         logger.debug('Fetching time')
-        time = [i.strftime('%Y-%m-%d %H:%M:%S') for i in num2date(ds.variables[ncvars['time']], ds.variables[ncvars['time']].units)]
+        time = [i.strftime('%Y-%m-%d %H:%M:%S') for i in num2date(ds.variables[ncvars['time']][:], ds.variables[ncvars['time']].units)]
 
         if map_type == 'atmosphere':
             logger.debug('Fetching temperature')
@@ -120,7 +120,7 @@ def get_weather_dates(source, map_type):
     meta = get_current_forecast_metadata(source, map_type)
     ds = meta['ds']
     logger.debug('Fetching time')
-    time = [i.strftime('%Y-%m-%d %H:%M:%S') for i in num2date(ds.variables[ncvars['time']], ds.variables[ncvars['time']].units)]
+    time = [i.strftime('%Y-%m-%d %H:%M:%S') for i in num2date(ds.variables[ncvars['time']][:], ds.variables[ncvars['time']].units)]
 
     skip = 0
     if source == 'pml' and map_type == 'atmosphere':
