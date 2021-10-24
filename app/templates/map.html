@@ -272,6 +272,11 @@
               isPaused = false;
               counter = slider.value;
             }
+
+            slider.ontouchend = function() {
+	      isPaused = false;
+	      counter = slider.value;
+	    }
           })
           .catch(error => console.log(error));
       }
