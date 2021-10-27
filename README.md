@@ -1,6 +1,6 @@
 # Weather
 
-Simple webapp to display model outputs from a THREDDS server over a https://here.com map.
+Simple webapp to display model outputs from a THREDDS server over a https://here.com map. Fetches model outputs from the [Plymouth Marine Laboratory MyCoast project page](https://plymouthmarineforecasts.org/Tools). The map is interactive insofar as clicking within the model domain shows the timeseries of the temperature and wind speed in the graph along the bottom.
 
 # Screenshot
 
