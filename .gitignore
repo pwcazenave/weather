@@ -1,3 +1,4 @@
 app/static/dynamic
 .idea
 venv
+__pycache__
