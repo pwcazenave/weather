@@ -49,6 +49,7 @@ app.register_blueprint(api, url_prefix='/api/v1')
 
 scheduler = APScheduler()
 scheduler.init_app(app)
+logger.info('Starting scheduler')
 scheduler.start()
 
 # Configure CSRF protection.
@@ -142,6 +143,5 @@ def main():
 
 if __name__ == '__main__':
 
-    logger.info('Starting scheduler')
     logger.info('Starting main')
     main()
