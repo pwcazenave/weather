@@ -2,6 +2,10 @@
 
 Simple webapp to display model outputs from a THREDDS server over a https://here.com map.
 
+# Screenshot
+
+![Screenshot](images/shot.png)
+
 # Installation
 
 Needs python3. Once you have it:
