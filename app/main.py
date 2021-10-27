@@ -106,6 +106,7 @@ def about():
 def today_video():
     # Create frames for the most recent model runs
     meta = utils.get_current_forecast_metadata(source='pml', map_type='ocean')
+    utils.make_video(meta, overwrite=True)
     meta = utils.get_current_forecast_metadata(source='pml', map_type='atmosphere')
     utils.make_video(meta, overwrite=True)
 
