@@ -12,7 +12,7 @@ cd weather
 python3 -m venv venv
 . venv/bin/activate
 pip3 install -r requirements.txt
-```j
+```
 
 You need to register with Here maps and [get an API key](https://developer.here.com/documentation/maps/3.1.29.0/dev_guide/topics/quick-start.html). Once you have that key, run the application as:
 
