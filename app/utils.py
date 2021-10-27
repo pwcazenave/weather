@@ -173,8 +173,6 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
         add_cities(ax, locations['cities'], x, y, temperature - 273.15)
         # ax.coastlines(zorder=200, color='w', linewidth=1)
         ax.set_extent((x.min(), x.max(), y.min(), y.max()), crs=ccrs.PlateCarree())
-        # bbox_props = dict(boxstyle='round, pad=0.3', facecolor='w', edgecolor='w', lw=0, alpha=0.5)
-        # ax.axes.text(0.016, 0.975, time.strftime('%Y-%m-%d %H:%M'), ha='left', va='center', color='k', bbox=bbox_props, zorder=300, transform=ax.transAxes)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0, dpi=96, transparent=True)
     else:
         logger.debug(f'{fname} already exists and overwrite is {overwrite}')
@@ -207,8 +205,6 @@ def make_ocean_frame(fname, x, y, temperature, salinity, u, v, time, overwrite=F
         ax.contour(x, y, np.squeeze(salinity), levels=np.arange(10, 35, 0.25), colors=['white'], nchunk=5, transform=ccrs.PlateCarree(), zorder=50)
         ax.quiver(x[::10, ::10], y[::10, ::10], u[::10, ::10], v[::10, ::10], color='0.6', scale=50, transform=ccrs.PlateCarree(), zorder=60)
         ax.set_extent((x.min(), x.max(), y.min(), y.max()), crs=ccrs.PlateCarree())
-        bbox_props = dict(boxstyle='round, pad=0.3', facecolor='w', edgecolor='w', lw=0, alpha=0.5)
-        ax.axes.text(0.016, 0.975, time.strftime('%Y-%m-%d %H:%M'), ha='left', va='center', color='k', bbox=bbox_props, zorder=300, transform=ax.transAxes)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0, dpi=96, transparent=True)
     else:
         logger.debug(f'{fname} already exists and overwrite is {overwrite}')
