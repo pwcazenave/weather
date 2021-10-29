@@ -16,6 +16,8 @@ from matplotlib.colors import LogNorm
 from netCDF4 import Dataset, num2date
 from yaml import safe_load
 
+# pylint: disable=invalid-name, wrong-import-position, too-many-arguments
+
 
 logger = logging.getLogger(__name__)
 
