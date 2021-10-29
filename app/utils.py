@@ -408,7 +408,7 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
         else:
             temperature = ds.variables[ncvars['temperature']]
 
-        with Path('cities.yaml').open('r') as f:
+        with Path('cities.yaml').open('r', encoding='utf8') as f:
             locations = safe_load(f)
     elif map_type == 'ocean':
         logger.debug('Fetching ocean variables')
