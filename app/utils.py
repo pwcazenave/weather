@@ -130,7 +130,6 @@ def get_current_forecast_metadata(source='pml', map_type='atmosphere'):
         today = datetime.utcnow()
         year = f'{today:%Y}'
         month = f'{today:%m}'
-        day = f'{today:%d}'
         run_day = today - relativedelta(days=2)
         meta = {}
         worked = False
@@ -184,7 +183,7 @@ def get_current_forecast_metadata(source='pml', map_type='atmosphere'):
     return meta
 
 
-def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locations, overwrite=False):
+def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, locations, overwrite=False):
     """
     Plot an atmospheric model output frame to file `fname' with the given:
 
@@ -249,7 +248,7 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
     plt.close()
 
 
-def make_ocean_frame(fname, x, y, temperature, salinity, u, v, time, overwrite=False):
+def make_ocean_frame(fname, x, y, temperature, salinity, u, v, overwrite=False):
     """
     Plot an ocean model output frame to file `fname' with the given:
 
