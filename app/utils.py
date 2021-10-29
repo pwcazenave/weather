@@ -3,20 +3,18 @@ import multiprocessing
 from datetime import datetime
 from pathlib import Path
 
+# Headless matplotlib
+import matplotlib as mpl
+mpl.use('Agg')
 import cartopy.crs as ccrs
-import cmocean.cm
 import matplotlib.pyplot as plt
 import numpy as np
 from cmocean import cm
 from dateutil.relativedelta import relativedelta
-from netCDF4 import Dataset, num2date
-from yaml import safe_load
-
-# Headless matplotlib
-import matplotlib as mpl
-mpl.use('Agg')
 from matplotlib import rcParams
 from matplotlib.colors import LogNorm
+from netCDF4 import Dataset, num2date
+from yaml import safe_load
 
 
 logger = logging.getLogger(__name__)
