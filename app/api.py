@@ -34,8 +34,9 @@ def timeseries(source, map_type):
 
     # Checking for values inside the bounding box is a bit tricky as it's possible to click under the arched bottom
     # of the map, for example, and satisfy the criteria below and yet still not have any valid data.
+    domain_extents = f"{meta['west'].min()}/{meta['east']}/{meta['south']}/{meta['north']}"
     if meta['west'].min() < x < meta['east'].max() and meta['south'].min() < y < meta['north'].max():
-        logger.debug(f"{x}/{y} inside the model domain ({meta['west'].min()}/{meta['east']}/{meta['south']}/{meta['north']})")
+        logger.debug(f"{x}/{y} inside the model domain ({domain_extents})")
         ds = meta['ds']
         pos_row, pos_col = np.unravel_index(np.argmin(np.hypot(meta['x'] - x, meta['y'] - y)), meta['x'].shape)
 
@@ -87,7 +88,7 @@ def timeseries(source, map_type):
                            'u_m_per_s': u.tolist(),
                            'v_m_per_s': v.tolist()})
     else:
-        logger.debug(f"{x}/{y} outside the model domain ({meta['west'].min()}/{meta['east']}/{meta['south']}/{meta['north']})")
+        logger.debug(f"{x}/{y} outside the model domain ({domain_extents})")
         values['status'] = 500
 
     return flask.jsonify(values)
