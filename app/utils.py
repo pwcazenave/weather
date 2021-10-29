@@ -103,11 +103,16 @@ def add_cities(ax, cities, longitude, latitude, temperature):
         xidx, yidx = closest_point(lon, lat, longitude, latitude)
         temp = temperature[yidx, xidx]
         # Make the background temperature in the range 0-255
-        bbox = {'boxstyle': 'round', 'pad': 0.3, 'facecolor': colours(fix_range(norm_temp[yidx, xidx], 0, 255)), 'lw': 0, 'alpha': 0.75}
+        bbox = {'boxstyle': 'round',
+                'pad': 0.3,
+                'facecolor': colours(fix_range(norm_temp[yidx, xidx], 0, 255)),
+                'lw': 0,
+                'alpha': 0.75}
         fc = 'k'
         if temp < 16:
             fc = 'w'
-        ax.text(lon, lat, f'{temp:.1f}', ha='center', va='center', color=fc, size=10, bbox=bbox, zorder=250, transform=ccrs.PlateCarree())
+        ax.text(lon, lat, f'{temp:.1f}', ha='center', va='center', color=fc, size=10, bbox=bbox, zorder=250,
+                transform=ccrs.PlateCarree())
 
 
 def get_current_forecast_metadata(source='pml', map_type='atmosphere'):
@@ -199,8 +204,23 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
         logger.debug(f'Creating {fname}')
         ax.clear()
         ax.axis('off')
-        ax.contour(x, y, pressure, levels=np.arange(0, 1000, 5), colors=['black'], nchunk=5, transform=ccrs.PlateCarree(), zorder=50)
-        cf = ax.contourf(x, y, rain, transform=ccrs.PlateCarree(), linestyles=None, alpha=0.75, zorder=150, cmap=rain_cm, norm=LogNorm())
+        ax.contour(x,
+                   y,
+                   pressure,
+                   levels=np.arange(0, 1000, 5),
+                   colors=['black'],
+                   nchunk=5,
+                   transform=ccrs.PlateCarree(),
+                   zorder=50)
+        cf = ax.contourf(x,
+                   y,
+                   rain,
+                   transform=ccrs.PlateCarree(),
+                   linestyles=None,
+                   alpha=0.75,
+                   zorder=150,
+                   cmap=rain_cm,
+                   norm=LogNorm())
         cf.set_clim(vmax=2)
         # Convert Kelvin to Celsius here
         add_cities(ax, locations['cities'], x, y, temperature - 273.15)
@@ -234,9 +254,30 @@ def make_ocean_frame(fname, x, y, temperature, salinity, u, v, time, overwrite=F
         logger.debug(f'Creating {fname}')
         ax.clear()
         ax.axis('off')
-        ax.pcolormesh(x, y, np.squeeze(temperature), cmap=cmocean.cm.thermal, vmin=5, vmax=20, transform=ccrs.PlateCarree(), zorder=40)
-        ax.contour(x, y, np.squeeze(salinity), levels=np.arange(10, 35, 0.25), colors=['white'], nchunk=5, transform=ccrs.PlateCarree(), zorder=50)
-        ax.quiver(x[::10, ::10], y[::10, ::10], u[::10, ::10], v[::10, ::10], color='0.6', scale=50, transform=ccrs.PlateCarree(), zorder=60)
+        ax.pcolormesh(x,
+                      y,
+                      np.squeeze(temperature),
+                      cmap=cm.thermal,
+                      vmin=5,
+                      vmax=20,
+                      transform=ccrs.PlateCarree(),
+                      zorder=40)
+        ax.contour(x,
+                  y,
+                  np.squeeze(salinity),
+                  levels=np.arange(10, 35, 0.25),
+                  colors=['white'],
+                  nchunk=5,
+                  transform=ccrs.PlateCarree(),
+                  zorder=50)
+        ax.quiver(x[::10, ::10],
+                  y[::10, ::10],
+                  u[::10, ::10],
+                  v[::10, ::10],
+                  color='0.6',
+                  scale=50,
+                  transform=ccrs.PlateCarree(),
+                  zorder=60)
         ax.set_extent((x.min(), x.max(), y.min(), y.max()), crs=ccrs.PlateCarree())
         fig.savefig(fname, bbox_inches='tight', pad_inches=0, dpi=96, transparent=True)
     else:
@@ -366,25 +407,53 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
             logger.debug(f'Fetch data for time index {i}')
             si = skip_offset + i
             if map_type == 'atmosphere':
-                make_atmosphere_frame(fnames[i], meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite)
+                make_atmosphere_frame(fnames[i],
+                                      meta['x'],
+                                      meta['y'],
+                                      pressure[si],
+                                      rain[si],
+                                      temperature[si],
+                                      locations,
+                                      overwrite)
             elif map_type == 'ocean':
                 # Surface fields only
-                make_ocean_frame(fnames[i], meta['x'], meta['y'], temperature[si, 0], salinity[si, 0], u[si, 0], v[si, 0], time[si], overwrite)
+                make_ocean_frame(fnames[i],
+                meta['x'],
+                meta['y'],
+                temperature[si, 0],
+                salinity[si, 0],
+                u[si, 0],
+                v[si, 0],
+                overwrite)
     else:
-        pool = multiprocessing.Pool()
-        args = []
-        for i in range(ds.dimensions[dims['time']].size - skip_offset - 1):
-            logger.debug(f'Fetch data for time index {i}')
-            si = skip_offset + i
-            if map_type == 'atmosphere':
-                args.append((fnames[i], meta['x'], meta['y'], pressure[si], rain[si], temperature[si], time[si], locations, overwrite))
-                fn = make_atmosphere_frame
-            elif map_type == 'ocean':
-                args.append((fnames[i], meta['x'], meta['y'], temperature[si, 0], salinity[si, 0], u[si, 0], v[si, 0], time[si], overwrite))
-                fn = make_ocean_frame
-            # make_frame(*args[-1])
-        pool.starmap(fn, args)
-        pool.close()
+        with multiprocessing.Pool() as pool:
+            args = []
+            for i in range(ds.dimensions[dims['time']].size - skip_offset - 1):
+                logger.debug(f'Fetch data for time index {i}')
+                si = skip_offset + i
+                if map_type == 'atmosphere':
+                    args.append((fnames[i],
+                                meta['x'],
+                                meta['y'],
+                                pressure[si],
+                                rain[si],
+                                temperature[si],
+                                time[si],
+                                locations,
+                                overwrite))
+                    fn = make_atmosphere_frame
+                elif map_type == 'ocean':
+                    args.append((fnames[i],
+                                meta['x'],
+                                meta['y'],
+                                temperature[si, 0],
+                                salinity[si, 0],
+                                u[si, 0],
+                                v[si, 0],
+                                time[si],
+                                overwrite))
+                    fn = make_ocean_frame
+            pool.starmap(fn, args)
 
 
 def wind_chill(temp, wind_speed):
