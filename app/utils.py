@@ -116,6 +116,10 @@ def add_cities(ax, cities, longitude, latitude, temperature):
 
 
 def get_current_forecast_metadata(source='pml', map_type='atmosphere'):
+    """
+    Fetch the current forecast metadata for the given model source and type.
+
+    """
     logger.info(f'Fetching {source} {map_type} forecast metadata')
 
     if source == 'gfs' and map_type == 'ocean':
@@ -181,6 +185,18 @@ def get_current_forecast_metadata(source='pml', map_type='atmosphere'):
 
 
 def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locations, overwrite=False):
+    """
+    Plot an atmospheric model output frame to file `fname' with the given:
+
+        - x, y: coordinate arrays (spherical)
+        - pressure, rain, temperature: data arrays (same size as x, y)
+        - locations: dictionary with a key 'cities' inside of which is another dictionary with [x, y] positions.
+
+    Optionally pass `overwrite' as True to overwrite existing files, otherwise files are only overwritten if they're
+    over 24 hours old. Defaults to False.
+
+    """
+
     fig = plt.figure(figsize=(12, 10))
     projection = ccrs.Mercator()
     ax = plt.axes(projection=projection)
@@ -234,6 +250,17 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, time, locati
 
 
 def make_ocean_frame(fname, x, y, temperature, salinity, u, v, time, overwrite=False):
+    """
+    Plot an ocean model output frame to file `fname' with the given:
+
+        - x, y: coordinate arrays (spherical)
+        - temperature, salinity, u, v: data arrays (same size as x, y)
+
+    Optionally pass `overwrite' as True to overwrite existing files, otherwise files are only overwritten if they're
+    over 24 hours old. Defaults to False.
+
+    """
+
     fig = plt.figure(figsize=(12, 10))
     projection = ccrs.Mercator()
     ax = plt.axes(projection=projection)
@@ -287,6 +314,17 @@ def make_ocean_frame(fname, x, y, temperature, salinity, u, v, time, overwrite=F
 
 
 def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, serial=False):
+    """
+    For the given source model and map type, plot the frames for the map.
+
+    Set `overwrite' to True to overwrite existing files. Defaults to only overwriting if the existing files are over 24
+    hours old.
+
+    Set `serial` to True to create the frames in serial. Defaults to spinning up a multiprocessing pool for creating
+    the frames.
+
+    """
+
     logger.info(f'Fetching weather forecast from {source}')
 
     if source == 'gfs' and map_type == 'ocean':
