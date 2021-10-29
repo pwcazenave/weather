@@ -156,13 +156,13 @@ def utility_functions():
 
 
 @app.errorhandler(flask_wtf.csrf.CSRFError)
-def handle_csrf_error(e):
-    return flask.jsonify({'success': False, 'error': e.description}), 400
+def handle_csrf_error(exception):
     """
     Handle CSRF errors slightly more gracefully.
 
     """
 
+    return flask.jsonify({'success': False, 'error': exception.description}), 400
 
 
 def main():
