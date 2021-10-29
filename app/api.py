@@ -12,6 +12,8 @@ from netCDF4 import num2date
 
 from utils import get_current_forecast_metadata, wind_chill, get_ncvars
 
+# pylint: disable=invalid-name, wrong-import-position, too-many-arguments
+
 api = flask.Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
