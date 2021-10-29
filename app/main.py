@@ -9,9 +9,6 @@ ChangeLog
 
 """
 
-# TODO:
-#   - Pick a location on a map and get the weather there
-
 import os
 import logging
 from datetime import datetime
