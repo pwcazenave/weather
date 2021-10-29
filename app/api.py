@@ -1,3 +1,8 @@
+"""
+The routes for the REST API.
+
+"""
+
 import logging
 from pathlib import Path
 
@@ -13,6 +18,10 @@ logger = logging.getLogger(__name__)
 
 @api.route('/timeseries/<source>/<map_type>')
 def timeseries(source, map_type):
+    """
+    Return a map for the current model and map type.
+
+    """
     ncvars, _ = get_ncvars(source, map_type)
 
     # Find the closest location to that which has been passed in
@@ -86,7 +95,11 @@ def timeseries(source, map_type):
 
 @api.route('/dates/<source>/<map_type>')
 def get_weather_dates(source, map_type):
-    # Return the count'th date source/map_type
+    """
+    Return the count'th date source/map_type.
+
+    """
+
     ncvars, _ = get_ncvars(source, map_type)
     meta = get_current_forecast_metadata(source, map_type)
     ds = meta['ds']
@@ -103,7 +116,11 @@ def get_weather_dates(source, map_type):
 
 @api.route('/weather/<source>/<map_type>/<count>')
 def get_weather_frame(source, map_type, count):
-    # Return the count'th frame png for the given source/map_type
+    """
+    Return the count'th frame png for the given source/map_type
+
+    """
+
     frame_name = Path('static', 'dynamic', 'frames', f'{source}_{map_type}_frame_{int(count):02d}.png')
     if frame_name.exists():
         return flask.send_file(frame_name, mimetype='image/png')
