@@ -213,7 +213,8 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, locations, o
 
     # Plots the requested time from the model output
     too_old = False
-    if fname.exists() and (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds() > 24 * 60 * 60:
+    file_age = (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds()
+    if fname.exists() and file_age > 24 * 60 * 60:
         too_old = True
     if not fname.exists() or overwrite or too_old:
         logger.debug(f'Creating {fname}')
@@ -274,7 +275,8 @@ def make_ocean_frame(fname, x, y, temperature, salinity, u, v, overwrite=False):
 
     # Plots the requested time from the model output
     too_old = False
-    if fname.exists() and (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds() > 24 * 60 * 60:
+    file_age = (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds()
+    if fname.exists() and file_age > 24 * 60 * 60:
         too_old = True
     if not fname.exists() or overwrite or too_old:
         logger.debug(f'Creating {fname}')
@@ -375,7 +377,8 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
         fname = Path('static', 'dynamic', 'frames', f'{source}_{map_type}_frame_{i + 1:02d}.png')
         fname.parent.mkdir(parents=True, exist_ok=True)
         too_old = False
-        if fname.exists() and (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds() > 24 * 60 * 60:
+        file_age = (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds()
+        if fname.exists() and file_age > 24 * 60 * 60:
             too_old = True
         if not fname.exists() or overwrite or too_old:
             missing_frames.append(True)
