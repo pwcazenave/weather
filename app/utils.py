@@ -332,30 +332,7 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
         raise ValueError('Ocean maps not yet supported for GFS source data')
 
     logger.info(f'Plotting {map_type} from {source}')
-    ncvars = {}
-    dims = {}
-    if source == 'pml':
-        if map_type == 'atmosphere':
-            ncvars = {'time': 'XTIME',
-                      'rain': 'RAINNC',
-                      'temperature': 'T2',
-                      'surface_pressure': 'PSFC',
-                      'base_pressure': 'PB'}
-            dims = {'time': 'Time'}
-        elif map_type == 'ocean':
-            ncvars = {'time': 'time',
-                      'u': 'u',
-                      'v': 'v',
-                      'temperature': 'temp',
-                      'salinity': 'salinity'}
-            dims = {'time': 'time'}
-    elif source == 'gfs':
-        if map_type == 'atmosphere':
-            ncvars = {'time': 'time',
-                      'rain': 'crainsfc',
-                      'temperature': 'tmpsfc',
-                      'surface_pressure': 'pressfc'}
-            dims = {'time': 'time'}
+    ncvars, dims = get_ncvars(source, map_type)
 
     ds = meta['ds']
 
