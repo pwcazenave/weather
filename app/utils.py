@@ -33,6 +33,39 @@ def get_box(lon, lat):
     return west, east, south, north
 
 
+def get_ncvars(source, map_type):
+    """
+    Return a dictionary of the variables for the given model source and type, along with the key dimension names.
+
+    """
+    if source == 'pml':
+        if map_type == 'atmosphere':
+            ncvars = {'time': 'XTIME',
+                      'rain': 'RAINNC',
+                      'temperature': 'T2',
+                      'surface_pressure': 'PSFC',
+                      'base_pressure': 'PB',
+                      'u': 'U10',
+                      'v': 'V10'}
+            dims = {'time': 'Time'}
+        elif map_type == 'ocean':
+            ncvars = {'time': 'time',
+                      'u': 'u',
+                      'v': 'v',
+                      'temperature': 'temp',
+                      'salinity': 'salinity'}
+            dims = {'time': 'time'}
+    elif source == 'gfs':
+        if map_type == 'atmosphere':
+            ncvars = {'time': 'time',
+                      'rain': 'crainsfc',
+                      'temperature': 'tmpsfc',
+                      'surface_pressure': 'pressfc'}
+            dims = {'time': 'time'}
+
+    return ncvars, dims
+
+
 def closest_point(target_x, target_y, longitude, latitude):
     """
     Find the closest WRF grid point (longitude, latitude) to target_x and target_y.

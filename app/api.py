@@ -5,44 +5,15 @@ import flask
 import numpy as np
 from netCDF4 import num2date
 
-from utils import get_current_forecast_metadata, wind_chill
+from utils import get_current_forecast_metadata, wind_chill, get_ncvars
 
 api = flask.Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
 
-def get_ncvars(source, map_type):
-    if source == 'pml':
-        if map_type == 'atmosphere':
-            ncvars = {'time': 'XTIME',
-                      'rain': 'RAINNC',
-                      'temperature': 'T2',
-                      'surface_pressure': 'PSFC',
-                      'base_pressure': 'PB',
-                      'u': 'U10',
-                      'v': 'V10'}
-            dims = {'time': 'Time'}
-        elif map_type == 'ocean':
-            ncvars = {'time': 'time',
-                      'u': 'u',
-                      'v': 'v',
-                      'temperature': 'temp',
-                      'salinity': 'salinity'}
-            dims = {'time': 'time'}
-    elif source == 'gfs':
-        if map_type == 'atmosphere':
-            ncvars = {'time': 'time',
-                      'rain': 'crainsfc',
-                      'temperature': 'tmpsfc',
-                      'surface_pressure': 'pressfc'}
-            dims = {'time': 'time'}
-
-    return ncvars
-
-
 @api.route('/timeseries/<source>/<map_type>')
 def timeseries(source, map_type):
-    ncvars = get_ncvars(source, map_type)
+    ncvars, _ = get_ncvars(source, map_type)
 
     # Find the closest location to that which has been passed in
     x = float(flask.request.args['lon'])
@@ -116,7 +87,7 @@ def timeseries(source, map_type):
 @api.route('/dates/<source>/<map_type>')
 def get_weather_dates(source, map_type):
     # Return the count'th date source/map_type
-    ncvars = get_ncvars(source, map_type)
+    ncvars, _ = get_ncvars(source, map_type)
     meta = get_current_forecast_metadata(source, map_type)
     ds = meta['ds']
     logger.debug('Fetching time')
