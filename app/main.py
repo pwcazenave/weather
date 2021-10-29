@@ -60,11 +60,20 @@ app.jinja_env.lstrip_blocks = True
 
 @app.route('/')
 def slash():
+    """
+    Redirect a root request to the atmosphere map from the PML output.
+
+    """
+
     return flask.redirect(flask.url_for('create_map', map_type='atmosphere'))
 
 
 @app.route('/map/<map_type>')
 def create_map(map_type):
+    """
+    Render the map of the given map type. Defaults to PML/atmosphere.
+
+    """
     source = 'pml'
     if source == 'pml':
         if map_type == 'ocean':
@@ -91,16 +100,31 @@ def create_map(map_type):
 
 @app.route('/contact')
 def contact():
+    """
+    Render the contact page template.
+
+    """
+
     return flask.render_template('contact.html')
 
 
 @app.route('/about')
 def about():
+    """
+    Render the about page template.
+
+    """
+
     return flask.render_template('about.html')
 
 
 @scheduler.task('cron', id='make_video', day='*', hour=2, minute=30)
 def today_video():
+    """
+    Function to create the frames for the two PML model types with the scheduler.
+
+    """
+
     # Create frames for the most recent model runs
     meta = utils.get_current_forecast_metadata(source='pml', map_type='ocean')
     utils.make_video(meta, overwrite=True)
@@ -110,12 +134,21 @@ def today_video():
 
 @app.context_processor
 def inject_today_date():
-    """ Makes 'today_date' and 'today_year' be usable in the jinja templates """
+    """
+    Makes 'today_date' and 'today_year' be usable in the jinja templates.
+
+    """
+
     return {'today_date': datetime.now().strftime('%Y-%m-%d'), 'today_year': datetime.now().year}
 
 
 @app.context_processor
 def utility_functions():
+    """
+    Allows useful messages in the javascript console.
+
+    """
+
     def print_in_console(message):
         print(str(message))
 
@@ -125,9 +158,19 @@ def utility_functions():
 @app.errorhandler(flask_wtf.csrf.CSRFError)
 def handle_csrf_error(e):
     return flask.jsonify({'success': False, 'error': e.description}), 400
+    """
+    Handle CSRF errors slightly more gracefully.
+
+    """
+
 
 
 def main():
+    """
+    Run the Flask app.
+
+    """
+
     app.run(host=host,
             port=port,
             debug=debug,
