@@ -125,11 +125,10 @@ def today_video():
 
     """
 
-    # Create frames for the most recent model runs
-    meta = utils.get_current_forecast_metadata(source='pml', map_type='ocean')
-    utils.make_video(meta, overwrite=True)
-    meta = utils.get_current_forecast_metadata(source='pml', map_type='atmosphere')
-    utils.make_video(meta, overwrite=True)
+    # Create frames for the most recent PML model runs
+    for map_type in ('ocean', 'atmosphere'):
+        meta = utils.get_current_forecast_metadata(source='pml', map_type=map_type)
+        utils.make_video(meta, source='pml', map_type=map_type, overwrite=True)
 
 
 @app.context_processor
