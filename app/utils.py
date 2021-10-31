@@ -456,7 +456,6 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
                                 pressure[si],
                                 rain[si],
                                 temperature[si],
-                                time[si],
                                 locations,
                                 overwrite))
                     fn = make_atmosphere_frame
@@ -468,7 +467,6 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
                                 salinity[si, 0],
                                 u[si, 0],
                                 v[si, 0],
-                                time[si],
                                 overwrite))
                     fn = make_ocean_frame
             pool.starmap(fn, args)
