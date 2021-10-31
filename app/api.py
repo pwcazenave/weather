@@ -127,8 +127,8 @@ def get_weather_frame(source, map_type, count):
     """
 
     frame_name = Path('static', 'dynamic', 'frames', f'{source}_{map_type}_frame_{int(count):02d}.png')
+    logger.debug(f'Serving {frame_name.as_posix()}')
     if frame_name.exists():
         return flask.send_file(frame_name, mimetype='image/png')
     else:
         return flask.Response(status=404)
-

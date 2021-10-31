@@ -327,6 +327,7 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
     """
 
     logger.info(f'Fetching weather forecast from {source}')
+    logger.debug(f'Source URL is {meta["url"]}')
 
     if source == 'gfs' and map_type == 'ocean':
         raise ValueError('Ocean maps not yet supported for GFS source data')
