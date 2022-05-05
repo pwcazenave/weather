@@ -217,6 +217,11 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, locations, o
     if fname.exists() and file_age > 24 * 60 * 60:
         too_old = True
     if not fname.exists() or overwrite or too_old:
+        # We later check that the files we have been asked to make actually exist, so best to remove them before we make
+        # a new one.
+        logger.debug(f'Removing {fname}')
+        fname.unlink()
+
         logger.debug(f'Creating {fname}')
         ax.clear()
         ax.axis('off')
@@ -470,6 +475,11 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
                                 overwrite))
                     fn = make_ocean_frame
             pool.starmap(fn, args)
+
+    # Check for all the frames and if they're there, call that a success
+    made_frames = all([i.exists() for i in fnames])
+
+    return made_frames
 
 
 def wind_chill(temp, wind_speed):

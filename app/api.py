@@ -10,10 +10,11 @@ import flask
 import numpy as np
 from netCDF4 import num2date
 
-from utils import get_current_forecast_metadata, wind_chill, get_ncvars
+from utils import get_current_forecast_metadata, wind_chill, get_ncvars, make_video
 
 # pylint: disable=invalid-name, wrong-import-position, too-many-arguments
 
+app = flask.current_app
 api = flask.Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 @api.route('/timeseries/<source>/<map_type>')
 def timeseries(source, map_type):
     """
-    Return a map for the current model and map type.
+    Return a time series of data for the current model and map type.
 
     """
     ncvars, _ = get_ncvars(source, map_type)
@@ -132,3 +133,27 @@ def get_weather_frame(source, map_type, count):
         return flask.send_file(frame_name, mimetype='image/png')
     else:
         return flask.Response(status=404)
+
+
+@api.route('/frames/<source>/<map_type>')
+def make_video_frames(source, map_type):
+    """
+    Create the video frames for the given source/map_type
+
+    """
+
+    meta = get_current_forecast_metadata(source, map_type)
+
+    overwrite = False
+    try:
+        overwrite = bool(flask.request.args['overwrite'])
+    except KeyError:
+        pass
+
+    success = make_video(meta, source=source, map_type=map_type, overwrite=overwrite)
+
+    status = app.make_response('All frames created')
+    if not success:
+        status = app.make_response(('Not all frames created', 500))
+
+    return status
