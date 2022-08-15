@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @api.route('/timeseries/<source>/<map_type>')
 def timeseries(source, map_type):
     """
-    Return a time series of data for the current model and map type.
+    Return a time series of data for the current model and map type at the supplied location.
 
     """
     ncvars, _ = get_ncvars(source, map_type)
