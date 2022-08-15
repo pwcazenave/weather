@@ -157,3 +157,4 @@ def make_video_frames(source, map_type):
         status = app.make_response(('Not all frames created', 500))
 
     return status
+

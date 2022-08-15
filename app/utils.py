@@ -213,14 +213,18 @@ def make_atmosphere_frame(fname, x, y, pressure, rain, temperature, locations, o
 
     # Plots the requested time from the model output
     too_old = False
-    file_age = (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds()
-    if fname.exists() and file_age > 24 * 60 * 60:
-        too_old = True
+    if fname.exists():
+        file_age = (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds()
+        if file_age > 24 * 60 * 60:
+            too_old = True
     if not fname.exists() or overwrite or too_old:
         # We later check that the files we have been asked to make actually exist, so best to remove them before we make
         # a new one.
-        logger.debug(f'Removing {fname}')
-        fname.unlink()
+        if fname.exists():
+            logger.debug(f'Removing {fname}')
+            fname.unlink()
+        else:
+            logger.debug(f'No existing {fname} found')
 
         logger.debug(f'Creating {fname}')
         ax.clear()
@@ -360,9 +364,10 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
         fname = Path('static', 'dynamic', 'frames', f'{source}_{map_type}_frame_{i + 1:02d}.png')
         fname.parent.mkdir(parents=True, exist_ok=True)
         too_old = False
-        file_age = (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds()
-        if fname.exists() and file_age > 24 * 60 * 60:
-            too_old = True
+        if fname.exists():
+            file_age = (datetime.now() - datetime.fromtimestamp(fname.stat().st_mtime)).total_seconds()
+            if file_age > 24 * 60 * 60:
+                too_old = True
         if not fname.exists() or overwrite or too_old:
             missing_frames.append(True)
         else:
@@ -474,7 +479,10 @@ def make_video(meta, source='pml', map_type='atmosphere', overwrite=False, seria
                                 v[si, 0],
                                 overwrite))
                     fn = make_ocean_frame
-            pool.starmap(fn, args)
+            try:
+                pool.starmap(fn, args)
+            except ValueError:
+                pass
 
     # Check for all the frames and if they're there, call that a success
     made_frames = all([i.exists() for i in fnames])
